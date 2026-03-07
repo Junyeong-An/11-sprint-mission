@@ -28,7 +28,7 @@ public class Channel {
         return updatedAt;
     }
 
-    public String getChannelname() {
+    public String getChannelName() {
         return name;
     }
     
