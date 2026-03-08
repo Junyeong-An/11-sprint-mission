@@ -27,7 +27,7 @@ public class JCFUserService implements UserService {
                 return user;
             }
         }
-        throw new IllegalArgumentException("해당 유저가 없어요.");
+        throw new IllegalArgumentException("해당 유저를 찾을 수 없어요.");
     }
 
     @Override
@@ -49,6 +49,6 @@ public class JCFUserService implements UserService {
                 return;
             }
         }
-        throw new IllegalArgumentException("해당하는 유저를 찾을 수 없어요.");
+        throw new IllegalArgumentException("해당 유저를 찾을 수 없어요.");
     }
 }

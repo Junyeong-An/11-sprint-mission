@@ -1,21 +1,30 @@
 package com.sprint.mission.discodeit.service.jcf;
 
 import com.sprint.mission.discodeit.entity.Message;
+import com.sprint.mission.discodeit.service.ChannelService;
 import com.sprint.mission.discodeit.service.MessageService;
+import com.sprint.mission.discodeit.service.UserService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class JCFMessageService implements MessageService {
     private final List<Message> data;
+    private final UserService userService;
+    private final ChannelService channelService;
 
-    public JCFMessageService() {
+    public JCFMessageService(UserService userService, ChannelService channelService) {
         this.data = new ArrayList<>();
+        this.userService = userService;
+        this.channelService = channelService;
     }
 
     @Override
-    public Message createMessage(String content) {
-        Message message = new Message(content);
+    public Message createMessage(UUID authorId, UUID channelId, String content) {
+        userService.findUser(authorId);
+        channelService.findChannel(channelId);
+
+        Message message = new Message(authorId, channelId, content);
         data.add(message);
         return message;
     }
@@ -27,7 +36,7 @@ public class JCFMessageService implements MessageService {
                 return message;
             }
         }
-        throw new IllegalArgumentException("해당하는 메세지를 찾을 수 없어요.");
+        throw new IllegalArgumentException("해당 메시지를 찾을 수 없어요.");
     }
 
     @Override
@@ -49,6 +58,6 @@ public class JCFMessageService implements MessageService {
                 return;
             }
         }
-        throw new IllegalArgumentException("해당하는 메세지를 찾을 수 없어요.");
+        throw new IllegalArgumentException("해당 메시지를 찾을 수 없어요.");
     }
 }

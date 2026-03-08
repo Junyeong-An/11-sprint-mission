@@ -39,7 +39,6 @@ public class JCFChannelService implements ChannelService {
     public void updateName(UUID id, String name) {
         Channel channel = findChannel(id);
         channel.update(name);
-
     }
 
     @Override
@@ -50,7 +49,6 @@ public class JCFChannelService implements ChannelService {
                 return;
             }
         }
-        throw new IllegalArgumentException("해당하는 채널을 찾을 수 없어요.");
-
+        throw new IllegalArgumentException("해당 채널을 찾을 수 없어요.");
     }
 }
