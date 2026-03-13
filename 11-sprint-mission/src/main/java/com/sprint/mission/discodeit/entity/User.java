@@ -7,7 +7,7 @@ public class User implements Serializable {
     private final UUID id;
     private static final long serialVersionUID = 1L;
     private final Long createdAt;
-    private long updatedAt;
+    private Long updatedAt;
 
     private String name;
 
