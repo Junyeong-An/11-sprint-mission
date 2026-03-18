@@ -2,7 +2,9 @@ package com.sprint.mission.discodeit.entity;
 
 import java.io.Serializable;
 import java.util.UUID;
+import lombok.Getter;
 
+@Getter
 public class User implements Serializable {
     private final UUID id;
     private static final long serialVersionUID = 1L;
@@ -17,22 +19,6 @@ public class User implements Serializable {
         this.updatedAt = this.createdAt;
 
         this.name = name;
-    }
-
-    public UUID getId(){
-        return id;
-    }
-
-    public Long getCreatedAt() {
-        return createdAt;
-    }
-
-    public long getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public void update(String name){
