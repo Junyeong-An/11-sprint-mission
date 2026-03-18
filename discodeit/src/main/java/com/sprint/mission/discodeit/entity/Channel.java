@@ -3,7 +3,7 @@ package com.sprint.mission.discodeit.entity;
 import java.io.Serializable;
 import java.util.UUID;
 
-public class User implements Serializable {
+public class Channel implements Serializable {
     private final UUID id;
     private static final long serialVersionUID = 1L;
     private final Long createdAt;
@@ -11,15 +11,14 @@ public class User implements Serializable {
 
     private String name;
 
-    public User(String name) {
+    public Channel(String name){
         this.id = UUID.randomUUID();
         this.createdAt = System.currentTimeMillis();
-        this.updatedAt = this.createdAt;
-
+        this.updatedAt = createdAt;
         this.name = name;
     }
 
-    public UUID getId(){
+    public UUID getId() {
         return id;
     }
 
@@ -27,14 +26,14 @@ public class User implements Serializable {
         return createdAt;
     }
 
-    public long getUpdatedAt() {
+    public Long getUpdatedAt() {
         return updatedAt;
     }
 
-    public String getUsername() {
+    public String getName() {
         return name;
     }
-
+    
     public void update(String name){
         this.name = name;
         this.updatedAt = System.currentTimeMillis();

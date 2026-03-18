@@ -4,7 +4,9 @@ import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class FileMessageRepository extends AbstractFileRepository<Message> implements MessageRepository {
 
     public FileMessageRepository() {

@@ -4,7 +4,9 @@ import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public class FileUserRepository extends AbstractFileRepository<User> implements UserRepository {
 
     public FileUserRepository() {
