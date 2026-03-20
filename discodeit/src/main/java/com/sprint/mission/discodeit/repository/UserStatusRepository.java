@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 public interface UserStatusRepository {
     UserStatus save(UserStatus userStatus);
     Optional<UserStatus> findByUserId(UUID userId);
+    List<UserStatus> findByUserIdIn(List<UUID> userIds);
     List<UserStatus> findAll();
     void deleteByUserId(UUID userId);
 }
