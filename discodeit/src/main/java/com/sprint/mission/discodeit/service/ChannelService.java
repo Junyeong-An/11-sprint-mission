@@ -1,13 +1,176 @@
 package com.sprint.mission.discodeit.service;
 
 import com.sprint.mission.discodeit.entity.Channel;
+import com.sprint.mission.discodeit.entity.ChannelType;
+import com.sprint.mission.discodeit.entity.Message;
+import com.sprint.mission.discodeit.entity.ReadStatus;
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.repository.BinaryContentRepository;
+import com.sprint.mission.discodeit.repository.ChannelRepository;
+import com.sprint.mission.discodeit.repository.MessageRepository;
+import com.sprint.mission.discodeit.repository.ReadStatusRepository;
+import com.sprint.mission.discodeit.repository.UserRepository;
+import com.sprint.mission.discodeit.service.dto.channel.ChannelResponse;
+import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequest;
+import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelRequest;
+import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-public interface ChannelService {
-    Channel createChannel(String name);
-    Channel findChannel(UUID id);
-    List<Channel> getAllChannels();
-    void updateName(UUID id, String name);
-    void delete(UUID id);
+@Service
+@RequiredArgsConstructor
+public class ChannelService {
+    private final ChannelRepository channelRepository;
+    private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
+    private final ReadStatusRepository readStatusRepository;
+    private final BinaryContentRepository binaryContentRepository;
+
+    public ChannelResponse createPublicChannel(CreatePublicChannelRequest request) {
+        validatePublicChannelRequest(request);
+        Channel savedChannel = channelRepository.save(
+                Channel.publicChannel(request.name(), request.description())
+        );
+        return toResponse(savedChannel);
+    }
+
+    public ChannelResponse createPrivateChannel(CreatePrivateChannelRequest request) {
+        validatePrivateChannelRequest(request);
+
+        Channel savedChannel = channelRepository.save(Channel.privateChannel());
+
+        request.participantIds().stream()
+                .distinct()
+                .forEach(participantId -> {
+                    userRepository.findById(participantId)
+                            .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+                    readStatusRepository.save(new ReadStatus(participantId, savedChannel.getId()));
+                });
+
+        return toResponse(savedChannel);
+    }
+
+    public ChannelResponse find(UUID id) {
+        return toResponse(getChannel(id));
+    }
+
+    public List<ChannelResponse> findAllByUserId(UUID userId) {
+        if (userId == null) {
+            throw new DiscodeitException(ErrorCode.USER_ID_REQUIRED);
+        }
+        userRepository.findById(userId)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+
+        List<UUID> visiblePrivateChannelIds = readStatusRepository.findByUserId(userId).stream()
+                .map(ReadStatus::getChannelId)
+                .distinct()
+                .toList();
+
+        return channelRepository.findAll().stream()
+                .filter(channel -> isVisibleChannel(channel, visiblePrivateChannelIds))
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public ChannelResponse update(UpdateChannelRequest request) {
+        validateUpdateChannelRequest(request);
+
+        Channel channel = getChannel(request.channelId());
+        if (channel.getChannelType() == ChannelType.PRIVATE) {
+            throw new DiscodeitException(ErrorCode.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED);
+        }
+
+        channel.update(request.name(), request.description());
+        Channel savedChannel = channelRepository.save(channel);
+        return toResponse(savedChannel);
+    }
+
+    public void delete(UUID id) {
+        getChannel(id); // 해당 채널이 있음을 확인한다.
+
+        messageRepository.findAll().stream()
+                .filter(message -> message.getChannelId().equals(id))
+                .peek(message -> message.getAttachmentIds().forEach(binaryContentRepository::deleteById))
+                .map(Message::getId)
+                .toList()
+                .forEach(messageRepository::deleteById);
+
+        readStatusRepository.deleteByChannelId(id);
+        channelRepository.deleteById(id);
+    }
+
+    private Channel getChannel(UUID id) {
+        if (id == null) {
+            throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
+        }
+        return channelRepository.findById(id);
+    }
+
+    private ChannelResponse toResponse(Channel channel) {
+        Instant lastMessageAt = messageRepository.findAll().stream()
+                .filter(message -> message.getChannelId().equals(channel.getId()))
+                .map(Message::getCreatedAt)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+
+        List<UUID> participantIds = channel.getChannelType() == ChannelType.PRIVATE
+                ? readStatusRepository.findByChannelId(channel.getId()).stream()
+                .map(ReadStatus::getUserId)
+                .distinct()
+                .toList()
+                : null;
+
+        return ChannelResponse.builder()
+                .id(channel.getId())
+                .name(channel.getName())
+                .description(channel.getDescription())
+                .channelType(channel.getChannelType())
+                .lastMessageAt(lastMessageAt)
+                .participantIds(participantIds)
+                .createdAt(channel.getCreatedAt())
+                .updatedAt(channel.getUpdatedAt())
+                .build();
+    }
+
+    private void validatePublicChannelRequest(CreatePublicChannelRequest request) {
+        if (request == null) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "공개 채널 생성 요청값이 비어있어요.");
+        }
+        if (request.name() == null || request.name().isBlank()) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "공개 채널 이름이 비어있어요.");
+        }
+    }
+
+    private void validatePrivateChannelRequest(CreatePrivateChannelRequest request) {
+        if (request == null) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "비공개 채널 생성 요청값이 비어있어요.");
+        }
+        if (request.participantIds() == null || request.participantIds().isEmpty()) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "비공개 채널 참여자는 최소 1명 이상 필요해요.");
+        }
+    }
+
+    private void validateUpdateChannelRequest(UpdateChannelRequest request) {
+        if (request == null) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "채널 수정 요청값이 비어있어요.");
+        }
+        if (request.channelId() == null) {
+            throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
+        }
+        if (request.name() == null || request.name().isBlank()) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "채널 이름이 비어있어요.");
+        }
+    }
+
+    private boolean isVisibleChannel(Channel channel, List<UUID> visiblePrivateChannelIds) {
+        if (channel.getChannelType() == ChannelType.PUBLIC) {
+            return true;
+        }
+        return visiblePrivateChannelIds.contains(channel.getId());
+    }
 }
