@@ -6,7 +6,9 @@ import java.util.UUID;
 import lombok.Getter;
 
 @Getter
-public abstract class BaseEntity{
+public abstract class BaseEntity implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final UUID id;
     private final Instant createdAt;
     private Instant updatedAt;

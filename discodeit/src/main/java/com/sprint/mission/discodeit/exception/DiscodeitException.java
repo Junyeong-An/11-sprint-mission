@@ -1,5 +1,8 @@
 package com.sprint.mission.discodeit.exception;
 
+import lombok.Getter;
+
+@Getter
 public class DiscodeitException extends RuntimeException {
     private final ErrorCode errorCode;
 
@@ -13,7 +16,4 @@ public class DiscodeitException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public ErrorCode getErrorCode() {
-        return errorCode;
-    }
 }

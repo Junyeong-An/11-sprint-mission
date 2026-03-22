@@ -3,6 +3,8 @@ package com.sprint.mission.discodeit.service;
 import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.repository.UserStatusRepository;
@@ -28,12 +30,13 @@ public class UserService {
 
     public UserResponse find(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 없어요."));
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
         return toResponse(user);
     }
 
     public void delete(UUID id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("해당 유저가 없어요."));
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
         if (user.getProfileId() != null) {
             binaryContentRepository.deleteById(user.getProfileId());
         }
@@ -68,11 +71,11 @@ public class UserService {
 
     public UserResponse update(UpdateUserRequest request) {
         if (request == null || request.userId() == null) {
-            throw new IllegalArgumentException("유저ID가 비어있어요.");
+            throw new DiscodeitException(ErrorCode.USER_ID_REQUIRED);
         }
 
         User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new IllegalArgumentException("해당 유저가 없어요."));
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
         validateUniqueUsername(request.userId(), request.username());
         validateUniqueEmail(request.userId(), request.email());
 
@@ -84,16 +87,16 @@ public class UserService {
 
     private void validateCreateRequest(CreateUserRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("요청값이 비어있어요.");
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "요청값이 비어있어요.");
         }
         if (isBlank(request.username())) {
-            throw new IllegalArgumentException("유저이름이 비어있어요.");
+            throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
         }
         if (isBlank(request.email())) {
-            throw new IllegalArgumentException("이메일이 비어있어요.");
+            throw new DiscodeitException(ErrorCode.EMAIL_REQUIRED);
         }
         if (request.password() == null) {
-            throw new IllegalArgumentException("비밀번호가 비어있어요.");
+            throw new DiscodeitException(ErrorCode.PASSWORD_REQUIRED);
         }
     }
 
@@ -125,41 +128,45 @@ public class UserService {
 
     private void validateUniqueUsername(UUID userId, String username) {
         if (isBlank(username)) {
-            throw new IllegalArgumentException("유저이름이 비어있어요.");
+            throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
         }
 
         userRepository.findByUserName(username)
                 .filter(foundUser -> !foundUser.getId().equals(userId))
                 .ifPresent(user -> {
-                    throw new IllegalArgumentException("해당 유저이름이 이미 존재해요.");
+                    throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
                 });
     }
 
     private void validateUniqueUsername(String username) {
+        if (isBlank(username)) {
+            throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
+        }
+
         userRepository.findByUserName(username)
                 .ifPresent(user -> {
-                    throw new IllegalArgumentException("해당 유저이름이 이미 존재해요.");
+                    throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
                 });
     }
 
     private void validateUniqueEmail(String email) {
         if (isBlank(email)) {
-            throw new IllegalArgumentException("이메일이 비어있어요.");
+            throw new DiscodeitException(ErrorCode.EMAIL_REQUIRED);
         }
         if (userRepository.findByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("해당 이메일이 이미 존재해요.");
+            throw new DiscodeitException(ErrorCode.DUPLICATE_EMAIL);
         }
     }
 
     private void validateUniqueEmail(UUID userId, String email) {
         if (isBlank(email)) {
-            throw new IllegalArgumentException("이메일이 비어있어요.");
+            throw new DiscodeitException(ErrorCode.EMAIL_REQUIRED);
         }
 
         userRepository.findByEmail(email)
                 .filter(foundUser -> !foundUser.getId().equals(userId))
                 .ifPresent(user -> {
-                    throw new IllegalArgumentException("해당 이메일이 이미 존재해요.");
+                    throw new DiscodeitException(ErrorCode.DUPLICATE_EMAIL);
                 });
     }
 
