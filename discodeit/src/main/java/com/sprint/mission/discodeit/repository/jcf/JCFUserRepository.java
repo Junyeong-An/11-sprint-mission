@@ -1,11 +1,18 @@
 package com.sprint.mission.discodeit.repository.jcf;
 
 import com.sprint.mission.discodeit.entity.User;
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Repository;
 
+@Repository
+@ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "jcf", matchIfMissing = true)
 public class JCFUserRepository implements UserRepository {
     private final List<User> data;
 
@@ -26,13 +33,24 @@ public class JCFUserRepository implements UserRepository {
     }
 
     @Override
-    public User findById(UUID id) {
-        for (User user : data) {
-            if (user.getId().equals(id)) {
-                return user;
-            }
-        }
-        throw new IllegalArgumentException("유저를 찾을 수 없어요.");
+    public Optional<User> findById(UUID id) {
+        return data.stream()
+                .filter(user -> user.getId().equals(id))
+                .findFirst();
+    }
+
+    @Override
+    public Optional<User> findByUserName(String username) {
+        return data.stream()
+                .filter(user -> user.getUsername().equals(username))
+                .findFirst();
+    }
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return data.stream()
+                .filter(user -> user.getEmail().equals(email))
+                .findFirst();
     }
 
     @Override
@@ -48,6 +66,6 @@ public class JCFUserRepository implements UserRepository {
                 return;
             }
         }
-        throw new IllegalArgumentException("유저를 찾을 수 없어요.");
+        throw new DiscodeitException(ErrorCode.USER_NOT_FOUND);
     }
 }

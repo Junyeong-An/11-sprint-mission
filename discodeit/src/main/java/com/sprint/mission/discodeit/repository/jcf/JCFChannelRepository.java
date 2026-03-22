@@ -1,11 +1,17 @@
 package com.sprint.mission.discodeit.repository.jcf;
 
 import com.sprint.mission.discodeit.entity.Channel;
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Repository;
 
+@Repository
+@ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "jcf", matchIfMissing = true)
 public class JCFChannelRepository implements ChannelRepository {
     private final List<Channel> data;
 
@@ -32,7 +38,7 @@ public class JCFChannelRepository implements ChannelRepository {
                 return channel;
             }
         }
-        throw new IllegalArgumentException("채널을 찾을 수 없어요.");
+        throw new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND);
     }
 
     @Override
@@ -48,6 +54,6 @@ public class JCFChannelRepository implements ChannelRepository {
                 return;
             }
         }
-        throw new IllegalArgumentException("채널을 찾을 수 없어요.");
+        throw new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND);
     }
 }

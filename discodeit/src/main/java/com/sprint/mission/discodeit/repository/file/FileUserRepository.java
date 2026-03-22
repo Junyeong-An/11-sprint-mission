@@ -1,16 +1,30 @@
 package com.sprint.mission.discodeit.repository.file;
 
 import com.sprint.mission.discodeit.entity.User;
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "file")
 public class FileUserRepository extends AbstractFileRepository<User> implements UserRepository {
 
     public FileUserRepository() {
-        super("users.ser");
+        this(".discodeit");
+    }
+
+    @Autowired
+    public FileUserRepository(
+            @Value("${discodeit.repository.file-directory:.discodeit}") String fileDirectory
+    ) {
+        super(fileDirectory, "users.ser");
     }
 
     @Override
@@ -29,14 +43,24 @@ public class FileUserRepository extends AbstractFileRepository<User> implements 
     }
 
     @Override
-    public User findById(UUID id) {
-        List<User> users = readAll();
-        for (User user : users) {
-            if (user.getId().equals(id)) {
-                return user;
-            }
-        }
-        throw new IllegalArgumentException("User not found.");
+    public Optional<User> findById(UUID id) {
+        return readAll().stream()
+                .filter(user -> user.getId().equals(id))
+                .findFirst();
+    }
+
+    @Override
+    public Optional<User> findByUserName(String username) {
+        return readAll().stream()
+                .filter(user -> user.getUsername().equals(username))
+                .findFirst();
+    }
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        return readAll().stream()
+                .filter(user -> user.getEmail().equals(email))
+                .findFirst();
     }
 
     @Override
@@ -54,6 +78,6 @@ public class FileUserRepository extends AbstractFileRepository<User> implements 
                 return;
             }
         }
-        throw new IllegalArgumentException("User not found.");
+        throw new DiscodeitException(ErrorCode.USER_NOT_FOUND);
     }
 }

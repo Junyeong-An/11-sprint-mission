@@ -1,11 +1,17 @@
 package com.sprint.mission.discodeit.repository.jcf;
 
 import com.sprint.mission.discodeit.entity.Message;
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Repository;
 
+@Repository
+@ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "jcf", matchIfMissing = true)
 public class JCFMessageRepository implements MessageRepository {
     private final List<Message> data;
 
@@ -32,7 +38,7 @@ public class JCFMessageRepository implements MessageRepository {
                 return message;
             }
         }
-        throw new IllegalArgumentException("메세지를 찾을 수 없어요.");
+        throw new DiscodeitException(ErrorCode.MESSAGE_NOT_FOUND);
     }
 
     @Override
@@ -48,6 +54,6 @@ public class JCFMessageRepository implements MessageRepository {
                 return;
             }
         }
-        throw new IllegalArgumentException("메세지를 찾을 수 없어요.");
+        throw new DiscodeitException(ErrorCode.MESSAGE_NOT_FOUND);
     }
 }

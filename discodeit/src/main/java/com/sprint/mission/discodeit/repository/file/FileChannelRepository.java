@@ -1,16 +1,29 @@
 package com.sprint.mission.discodeit.repository.file;
 
 import com.sprint.mission.discodeit.entity.Channel;
+import com.sprint.mission.discodeit.exception.DiscodeitException;
+import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Repository;
 
 @Repository
+@ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "file")
 public class FileChannelRepository extends AbstractFileRepository<Channel> implements ChannelRepository {
 
     public FileChannelRepository() {
-        super("channels.ser");
+        this(".discodeit");
+    }
+
+    @Autowired
+    public FileChannelRepository(
+            @Value("${discodeit.repository.file-directory:.discodeit}") String fileDirectory
+    ) {
+        super(fileDirectory, "channels.ser");
     }
 
     @Override
@@ -36,7 +49,7 @@ public class FileChannelRepository extends AbstractFileRepository<Channel> imple
                 return channel;
             }
         }
-        throw new IllegalArgumentException("Channel not found.");
+        throw new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND);
     }
 
     @Override
@@ -54,6 +67,6 @@ public class FileChannelRepository extends AbstractFileRepository<Channel> imple
                 return;
             }
         }
-        throw new IllegalArgumentException("Channel not found.");
+        throw new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND);
     }
 }
