@@ -23,6 +23,11 @@ public class UserStatus extends BaseEntity {
         touchUpdatedAt();
     }
 
+    public void updateLastConnectedAt(Instant lastConnectedAt) {
+        this.lastConnectedAt = lastConnectedAt;
+        touchUpdatedAt();
+    }
+
     public boolean isOnline() {
         Instant onlineCutoff = Instant.now().minus(ONLINE_THRESHOLD);
         return !lastConnectedAt.isBefore(onlineCutoff);
