@@ -23,6 +23,13 @@ public class Message extends BaseEntity implements Serializable {
         this.content = content;
     }
 
+    public Message(UUID authorId, UUID channelId, String content, List<UUID> attachmentIds) {
+        this(authorId, channelId, content);
+        if (attachmentIds != null) {
+            this.attachmentIds.addAll(attachmentIds);
+        }
+    }
+
     public void update(String content) {
         this.content = content;
         touchUpdatedAt();
