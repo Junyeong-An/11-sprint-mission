@@ -15,11 +15,6 @@ import org.springframework.stereotype.Repository;
 @ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "file")
 public class FileMessageRepository extends AbstractFileRepository<Message> implements MessageRepository {
 
-    public FileMessageRepository() {
-        this(".discodeit");
-    }
-
-    @Autowired
     public FileMessageRepository(
             @Value("${discodeit.repository.file-directory:.discodeit}") String fileDirectory
     ) {

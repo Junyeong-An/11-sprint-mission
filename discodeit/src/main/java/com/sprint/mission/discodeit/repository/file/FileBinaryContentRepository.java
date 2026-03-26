@@ -16,11 +16,6 @@ import org.springframework.stereotype.Repository;
 @ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "file")
 public class FileBinaryContentRepository extends AbstractFileRepository<BinaryContent> implements BinaryContentRepository {
 
-    public FileBinaryContentRepository() {
-        this(".discodeit");
-    }
-
-    @Autowired
     public FileBinaryContentRepository(
             @Value("${discodeit.repository.file-directory:.discodeit}") String fileDirectory
     ) {
