@@ -1,0 +1,136 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    background-color: #e8e8ea;
+    color: #25272b;
+}
+
+.page {
+    min-height: 100vh;
+    padding: 56px 24px 96px;
+}
+
+.content {
+    max-width: 1220px;
+    margin: 0 auto;
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 42px;
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #1e2024;
+}
+
+.user-list {
+    background-color: #f2f2f3;
+    border: 1px solid #d9d9da;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(31, 32, 36, 0.06);
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    min-height: 160px;
+    padding: 24px 30px;
+    border-bottom: 1px solid #dfdfe1;
+}
+
+.user-item:last-child {
+    border-bottom: none;
+}
+
+.user-avatar {
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #d1d5db;
+}
+
+.user-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.user-name {
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #232529;
+    margin-bottom: 6px;
+}
+
+.user-email {
+    font-size: 16px;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: #5c5f64;
+}
+
+.status-badge {
+    padding: 10px 24px;
+    border-radius: 999px;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.online {
+    background-color: #45aa4e;
+    color: white;
+}
+
+.offline {
+    background-color: #94979d;
+    color: white;
+}
+
+@media (max-width: 1200px) {
+    .page {
+        padding: 44px 14px 56px;
+    }
+
+    .page-title {
+        font-size: 40px;
+        margin-bottom: 28px;
+    }
+
+    .user-item {
+        min-height: 120px;
+        padding: 18px;
+        gap: 16px;
+    }
+
+    .user-avatar {
+        width: 68px;
+        height: 68px;
+    }
+
+    .user-name {
+        font-size: 24px;
+        margin-bottom: 3px;
+    }
+
+    .user-email {
+        font-size: 16px;
+    }
+
+    .status-badge {
+        padding: 8px 16px;
+        font-size: 18px;
+    }
+}
