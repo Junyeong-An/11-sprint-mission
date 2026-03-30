@@ -53,6 +53,13 @@ public class FileMessageRepository extends AbstractFileRepository<Message> imple
     }
 
     @Override
+    public List<Message> findAllByChannelId(UUID channelId) {
+        return readAll().stream()
+                .filter(message -> message.getChannelId().equals(channelId))
+                .toList();
+    }
+
+    @Override
     public void deleteById(UUID id) {
         List<Message> messages = readAll();
         for (int i = 0; i < messages.size(); i++) {
@@ -63,5 +70,14 @@ public class FileMessageRepository extends AbstractFileRepository<Message> imple
             }
         }
         throw new DiscodeitException(ErrorCode.MESSAGE_NOT_FOUND);
+    }
+
+    @Override
+    public void deleteByChannelId(UUID channelId) {
+        List<Message> messages = readAll();
+        boolean removed = messages.removeIf(message -> message.getChannelId().equals(channelId));
+        if (removed) {
+            writeAll(messages);
+        }
     }
 }
