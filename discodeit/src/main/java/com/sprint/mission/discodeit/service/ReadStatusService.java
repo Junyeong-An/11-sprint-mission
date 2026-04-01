@@ -9,6 +9,7 @@ import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.service.dto.readstatus.CreateReadStatusRequest;
 import com.sprint.mission.discodeit.service.dto.readstatus.ReadStatusResponse;
 import com.sprint.mission.discodeit.service.dto.readstatus.UpdateReadStatusRequest;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,10 @@ public class ReadStatusService {
         return toResponse(readStatusRepository.save(readStatus));
     }
 
+    public ReadStatusResponse createByChannel(UUID channelId, UUID userId) {
+        return create(new CreateReadStatusRequest(userId, channelId));
+    }
+
     public ReadStatusResponse find(UUID id) {
         return toResponse(getReadStatus(id));
     }
@@ -57,6 +62,14 @@ public class ReadStatusService {
         ReadStatus readStatus = getReadStatus(request.readStatusId());
         readStatus.updateLastReadAt(request.lastReadAt());
         return toResponse(readStatusRepository.save(readStatus));
+    }
+
+    public ReadStatusResponse updateByChannel(UUID channelId, UUID readStatusId, Instant lastReadAt) {
+        ReadStatus readStatus = getReadStatus(readStatusId);
+        if (!readStatus.getChannelId().equals(channelId)) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "해당 채널의 메시지 수신 정보가 아니에요.");
+        }
+        return update(new UpdateReadStatusRequest(readStatusId, lastReadAt));
     }
 
     public void delete(UUID id) {

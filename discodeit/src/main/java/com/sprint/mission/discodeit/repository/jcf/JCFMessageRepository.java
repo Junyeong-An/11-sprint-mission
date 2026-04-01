@@ -47,6 +47,13 @@ public class JCFMessageRepository implements MessageRepository {
     }
 
     @Override
+    public List<Message> findAllByChannelId(UUID channelId) {
+        return data.stream()
+                .filter(message -> message.getChannelId().equals(channelId))
+                .toList();
+    }
+
+    @Override
     public void deleteById(UUID id) {
         for (int i = 0; i < data.size(); i++) {
             if (data.get(i).getId().equals(id)) {
@@ -55,5 +62,10 @@ public class JCFMessageRepository implements MessageRepository {
             }
         }
         throw new DiscodeitException(ErrorCode.MESSAGE_NOT_FOUND);
+    }
+
+    @Override
+    public void deleteByChannelId(UUID channelId) {
+        data.removeIf(message -> message.getChannelId().equals(channelId));
     }
 }

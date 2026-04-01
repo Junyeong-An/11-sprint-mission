@@ -52,8 +52,7 @@ public class MessageService {
         }
         getChannel(channelId);
 
-        return messageRepository.findAll().stream()
-                .filter(message -> message.getChannelId().equals(channelId))
+        return messageRepository.findAllByChannelId(channelId).stream()
                 .map(this::toResponse)
                 .toList();
     }

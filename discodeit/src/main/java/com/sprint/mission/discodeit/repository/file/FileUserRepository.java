@@ -16,11 +16,6 @@ import org.springframework.stereotype.Repository;
 @ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "file")
 public class FileUserRepository extends AbstractFileRepository<User> implements UserRepository {
 
-    public FileUserRepository() {
-        this(".discodeit");
-    }
-
-    @Autowired
     public FileUserRepository(
             @Value("${discodeit.repository.file-directory:.discodeit}") String fileDirectory
     ) {

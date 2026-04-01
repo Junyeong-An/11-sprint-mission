@@ -58,7 +58,7 @@ public class UserService {
                 .build();
         User savedUser = userRepository.save(user);
         userStatusRepository.save(new UserStatus(savedUser.getId()));
-        return toResponse(savedUser, false);
+        return toResponse(savedUser);
     }
 
     public List<UserResponse> findAll() {

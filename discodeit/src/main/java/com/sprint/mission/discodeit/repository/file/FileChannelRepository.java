@@ -15,11 +15,6 @@ import org.springframework.stereotype.Repository;
 @ConditionalOnProperty(prefix = "discodeit.repository", name = "type", havingValue = "file")
 public class FileChannelRepository extends AbstractFileRepository<Channel> implements ChannelRepository {
 
-    public FileChannelRepository() {
-        this(".discodeit");
-    }
-
-    @Autowired
     public FileChannelRepository(
             @Value("${discodeit.repository.file-directory:.discodeit}") String fileDirectory
     ) {

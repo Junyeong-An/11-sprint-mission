@@ -93,12 +93,12 @@ public class ChannelService {
     public void delete(UUID id) {
         getChannel(id); // 해당 채널이 있음을 확인한다.
 
-        messageRepository.findAll().stream()
-                .filter(message -> message.getChannelId().equals(id))
-                .peek(message -> message.getAttachmentIds().forEach(binaryContentRepository::deleteById))
-                .map(Message::getId)
+        messageRepository.findAllByChannelId(id).stream()
+                .flatMap(message -> message.getAttachmentIds().stream())
                 .toList()
-                .forEach(messageRepository::deleteById);
+                .forEach(binaryContentRepository::deleteById);
+
+        messageRepository.deleteByChannelId(id);
 
         readStatusRepository.deleteByChannelId(id);
         channelRepository.deleteById(id);
@@ -112,8 +112,7 @@ public class ChannelService {
     }
 
     private ChannelResponse toResponse(Channel channel) {
-        Instant lastMessageAt = messageRepository.findAll().stream()
-                .filter(message -> message.getChannelId().equals(channel.getId()))
+        Instant lastMessageAt = messageRepository.findAllByChannelId(channel.getId()).stream()
                 .map(Message::getCreatedAt)
                 .max(Comparator.naturalOrder())
                 .orElse(null);
