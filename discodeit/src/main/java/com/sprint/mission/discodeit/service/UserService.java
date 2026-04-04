@@ -1,5 +1,6 @@
 package com.sprint.mission.discodeit.service;
 
+import com.sprint.mission.discodeit.controller.dto.UserUpdateApiRequest;
 import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
@@ -20,6 +21,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +65,16 @@ public class UserService {
         return toResponse(savedUser);
     }
 
+    public UserResponse create(CreateUserRequest request, MultipartFile profile) {
+        CreateUserRequest mergedRequest = new CreateUserRequest(
+                request.username(),
+                request.email(),
+                request.password(),
+                toUserProfileRequest(profile)
+        );
+        return create(mergedRequest);
+    }
+
     public List<UserResponse> findAll() {
         List<User> users = userRepository.findAll();
         Map<UUID, UserStatus> statusByUserId = loadStatusMap(users);
@@ -83,6 +97,28 @@ public class UserService {
         replaceProfileIfPresent(user, request.replacementProfile());
         User savedUser = userRepository.save(user);
         return toResponse(savedUser);
+    }
+
+    public UserResponse update(UUID userId, UpdateUserRequest request, MultipartFile profile) {
+        UpdateUserRequest mergedRequest = new UpdateUserRequest(
+                userId,
+                request.username(),
+                request.email(),
+                request.password(),
+                toUserProfileRequest(profile)
+        );
+        return update(mergedRequest);
+    }
+
+    public UserResponse update(UUID userId, UserUpdateApiRequest request, MultipartFile profile) {
+        UpdateUserRequest convertedRequest = new UpdateUserRequest(
+                userId,
+                request.newUsername(),
+                request.newEmail(),
+                request.newPassword(),
+                null
+        );
+        return update(userId, convertedRequest, profile);
     }
 
     private void validateCreateRequest(CreateUserRequest request) {
@@ -207,5 +243,20 @@ public class UserService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private UserProfileRequest toUserProfileRequest(MultipartFile profile) {
+        if (profile == null || profile.isEmpty()) {
+            return null;
+        }
+        try {
+            return new UserProfileRequest(
+                    profile.getBytes(),
+                    profile.getOriginalFilename(),
+                    profile.getContentType()
+            );
+        } catch (IOException exception) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "프로필 파일을 읽을 수 없어요.");
+        }
     }
 }

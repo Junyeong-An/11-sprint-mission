@@ -1,5 +1,7 @@
 package com.sprint.mission.discodeit.controller;
 
+import com.sprint.mission.discodeit.common.ApiResponse;
+import com.sprint.mission.discodeit.controller.dto.ChannelUpdateApiRequest;
 import com.sprint.mission.discodeit.service.ChannelService;
 import com.sprint.mission.discodeit.service.dto.channel.ChannelResponse;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequest;
@@ -24,34 +26,42 @@ public class ChannelController {
     private final ChannelService channelService;
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public ChannelResponse find(@PathVariable UUID id) {
-        return channelService.find(id);
+    public ApiResponse<ChannelResponse> find(@PathVariable UUID id) {
+        return ApiResponse.success(channelService.find(id));
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public List<ChannelResponse> findAllByUserId(@RequestParam UUID userId) {
-        return channelService.findAllByUserId(userId);
+    public ApiResponse<List<ChannelResponse>> findAllByUserId(@RequestParam UUID userId) {
+        return ApiResponse.success(channelService.findAllByUserId(userId));
     }
 
+    @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "/public", method = RequestMethod.POST)
-    public ChannelResponse createPublic(@RequestBody CreatePublicChannelRequest request) {
-        return channelService.createPublicChannel(request);
+    public ApiResponse<ChannelResponse> createPublic(@RequestBody CreatePublicChannelRequest request) {
+        return ApiResponse.success(channelService.createPublicChannel(request));
     }
 
+    @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "/private", method = RequestMethod.POST)
-    public ChannelResponse createPrivate(@RequestBody CreatePrivateChannelRequest request) {
-        return channelService.createPrivateChannel(request);
+    public ApiResponse<ChannelResponse> createPrivate(@RequestBody CreatePrivateChannelRequest request) {
+        return ApiResponse.success(channelService.createPrivateChannel(request));
     }
 
-    @RequestMapping(method = RequestMethod.PUT)
-    public ChannelResponse update(@RequestBody UpdateChannelRequest request) {
-        return channelService.update(request);
+    @RequestMapping(value = "/{channelId}", method = RequestMethod.PATCH)
+    public ApiResponse<ChannelResponse> update(
+            @PathVariable UUID channelId,
+            @RequestBody ChannelUpdateApiRequest request
+    ) {
+        return ApiResponse.success(channelService.update(new UpdateChannelRequest(
+                channelId,
+                request.newName(),
+                request.newDescription()
+        )));
     }
 
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public void delete(@PathVariable UUID id) {
-        channelService.delete(id);
+    @RequestMapping(value = "/{channelId}", method = RequestMethod.DELETE)
+    public ApiResponse<Void> delete(@PathVariable UUID channelId) {
+        channelService.delete(channelId);
+        return ApiResponse.success();
     }
 }
-

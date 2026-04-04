@@ -9,6 +9,7 @@ import com.sprint.mission.discodeit.service.dto.userstatus.CreateUserStatusReque
 import com.sprint.mission.discodeit.service.dto.userstatus.UpdateUserStatusByUserIdRequest;
 import com.sprint.mission.discodeit.service.dto.userstatus.UpdateUserStatusRequest;
 import com.sprint.mission.discodeit.service.dto.userstatus.UserStatusResponse;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,11 @@ public class UserStatusService {
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_STATUS_NOT_FOUND));
         userStatus.updateLastConnectedAt(request.lastConnectedAt());
         return toResponse(userStatusRepository.save(userStatus));
+    }
+
+    public UserStatusResponse updateByUserId(UUID userId, Instant lastConnectedAt) {
+        Instant resolvedLastConnectedAt = lastConnectedAt != null ? lastConnectedAt : Instant.now();
+        return updateByUserId(new UpdateUserStatusByUserIdRequest(userId, resolvedLastConnectedAt));
     }
 
     public void delete(UUID id) {
