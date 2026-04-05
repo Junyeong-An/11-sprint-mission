@@ -1,6 +1,5 @@
 package com.sprint.mission.discodeit.controller;
 
-import com.sprint.mission.discodeit.common.ApiResponse;
 import com.sprint.mission.discodeit.controller.dto.ReadStatusUpdateApiRequest;
 import com.sprint.mission.discodeit.service.ReadStatusService;
 import com.sprint.mission.discodeit.service.dto.readstatus.CreateReadStatusByChannelRequest;
@@ -27,47 +26,47 @@ public class ReadStatusController {
     private final ReadStatusService readStatusService;
 
     @RequestMapping(value = "/channels/{channelId}", method = RequestMethod.POST)
-    public ApiResponse<ReadStatusResponse> createByChannel(
+    public ReadStatusResponse createByChannel(
             @PathVariable UUID channelId,
             @RequestBody CreateReadStatusByChannelRequest request
     ) {
-        return ApiResponse.success(readStatusService.createByChannel(channelId, request.userId()));
+        return readStatusService.createByChannel(channelId, request.userId());
     }
 
     @RequestMapping(value = "/{readStatusId}/channels/{channelId}", method = RequestMethod.PUT)
-    public ApiResponse<ReadStatusResponse> updateByChannel(
+    public ReadStatusResponse updateByChannel(
             @PathVariable UUID channelId,
             @PathVariable UUID readStatusId,
             @RequestBody UpdateReadStatusByChannelRequest request
     ) {
-        return ApiResponse.success(readStatusService.updateByChannel(channelId, readStatusId, request.lastReadAt()));
+        return readStatusService.updateByChannel(channelId, readStatusId, request.lastReadAt());
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public ApiResponse<List<ReadStatusResponse>> findAllByUser(@RequestParam UUID userId) {
-        return ApiResponse.success(readStatusService.findAllByUserId(userId));
+    public List<ReadStatusResponse> findAllByUser(@RequestParam UUID userId) {
+        return readStatusService.findAllByUserId(userId);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public ApiResponse<ReadStatusResponse> find(@PathVariable UUID id) {
-        return ApiResponse.success(readStatusService.find(id));
+    public ReadStatusResponse find(@PathVariable UUID id) {
+        return readStatusService.find(id);
     }
 
     @RequestMapping(method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<ReadStatusResponse> create(@RequestBody CreateReadStatusRequest request) {
-        return ApiResponse.success(readStatusService.create(request));
+    public ReadStatusResponse create(@RequestBody CreateReadStatusRequest request) {
+        return readStatusService.create(request);
     }
 
     @RequestMapping(value = "/{readStatusId}", method = RequestMethod.PATCH)
-    public ApiResponse<ReadStatusResponse> update(
+    public ReadStatusResponse update(
             @PathVariable UUID readStatusId,
             @RequestBody ReadStatusUpdateApiRequest request
     ) {
-        return ApiResponse.success(readStatusService.update(new UpdateReadStatusRequest(
+        return readStatusService.update(new UpdateReadStatusRequest(
                 readStatusId,
                 request.newLastReadAt()
-        )));
+        ));
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)

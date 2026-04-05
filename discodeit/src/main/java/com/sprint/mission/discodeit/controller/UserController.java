@@ -1,6 +1,5 @@
 package com.sprint.mission.discodeit.controller;
 
-import com.sprint.mission.discodeit.common.ApiResponse;
 import com.sprint.mission.discodeit.controller.dto.UserStatusUpdateApiRequest;
 import com.sprint.mission.discodeit.controller.dto.UserUpdateApiRequest;
 import com.sprint.mission.discodeit.service.UserService;
@@ -30,39 +29,39 @@ public class UserController {
     private final UserStatusService userStatusService;
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public ApiResponse<UserResponse> find(@PathVariable UUID id) {
-        return ApiResponse.success(userService.find(id));
+    public UserResponse find(@PathVariable UUID id) {
+        return userService.find(id);
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public ApiResponse<List<UserResponse>> findAll() {
-        return ApiResponse.success(userService.findAll());
+    public List<UserResponse> findAll() {
+        return userService.findAll();
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<UserResponse> create(
+    public UserResponse create(
             @RequestPart("userCreateRequest") CreateUserRequest userCreateRequest,
             @RequestPart(value = "profile", required = false) MultipartFile profile
     ) {
-        return ApiResponse.success(userService.create(userCreateRequest, profile));
+        return userService.create(userCreateRequest, profile);
     }
 
     @RequestMapping(value = "/{userId}", method = RequestMethod.PATCH, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<UserResponse> update(
+    public UserResponse update(
             @PathVariable UUID userId,
             @RequestPart("userUpdateRequest") UserUpdateApiRequest userUpdateRequest,
             @RequestPart(value = "profile", required = false) MultipartFile profile
     ) {
-        return ApiResponse.success(userService.update(userId, userUpdateRequest, profile));
+        return userService.update(userId, userUpdateRequest, profile);
     }
 
     @RequestMapping(value = "/{userId}/userStatus", method = RequestMethod.PATCH)
-    public ApiResponse<UserStatusResponse> updateOnlineStatus(
+    public UserStatusResponse updateOnlineStatus(
             @PathVariable UUID userId,
             @RequestBody UserStatusUpdateApiRequest request
     ) {
-        return ApiResponse.success(userStatusService.updateByUserId(userId, request.newLastActiveAt()));
+        return userStatusService.updateByUserId(userId, request.newLastActiveAt());
     }
 
     @RequestMapping(value = "/{userId}", method = RequestMethod.DELETE)

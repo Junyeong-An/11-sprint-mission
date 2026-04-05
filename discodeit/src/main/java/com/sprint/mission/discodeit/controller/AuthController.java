@@ -1,6 +1,5 @@
 package com.sprint.mission.discodeit.controller;
 
-import com.sprint.mission.discodeit.common.ApiResponse;
 import com.sprint.mission.discodeit.service.AuthService;
 import com.sprint.mission.discodeit.service.dto.user.UserLoginRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
@@ -17,7 +16,7 @@ public class AuthController {
     private final AuthService authService;
 
     @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public ApiResponse<UserResponse> login(@RequestBody UserLoginRequest request) {
-        return ApiResponse.success(authService.login(request));
+    public UserResponse login(@RequestBody UserLoginRequest request) {
+        return authService.login(request);
     }
 }
