@@ -60,8 +60,8 @@ public class ChannelController {
     }
 
     @RequestMapping(value = "/{channelId}", method = RequestMethod.DELETE)
-    public ApiResponse<Void> delete(@PathVariable UUID channelId) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID channelId) {
         channelService.delete(channelId);
-        return ApiResponse.success();
     }
 }

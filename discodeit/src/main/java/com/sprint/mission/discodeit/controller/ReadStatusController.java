@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,8 +43,8 @@ public class ReadStatusController {
         return ApiResponse.success(readStatusService.updateByChannel(channelId, readStatusId, request.lastReadAt()));
     }
 
-    @RequestMapping(value = "/users/{userId}", method = RequestMethod.GET)
-    public ApiResponse<List<ReadStatusResponse>> findAllByUser(@PathVariable UUID userId) {
+    @RequestMapping(method = RequestMethod.GET)
+    public ApiResponse<List<ReadStatusResponse>> findAllByUser(@RequestParam UUID userId) {
         return ApiResponse.success(readStatusService.findAllByUserId(userId));
     }
 
@@ -69,9 +70,9 @@ public class ReadStatusController {
         )));
     }
 
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @RequestMapping(value = "/{readStatusId}", method = RequestMethod.DELETE)
-    public ApiResponse<Void> delete(@PathVariable UUID readStatusId) {
+    public void delete(@PathVariable UUID readStatusId) {
         readStatusService.delete(readStatusId);
-        return ApiResponse.success();
     }
 }

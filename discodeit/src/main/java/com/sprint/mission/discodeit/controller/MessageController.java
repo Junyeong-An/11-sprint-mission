@@ -55,8 +55,8 @@ public class MessageController {
     }
 
     @RequestMapping(value = "/{messageId}", method = RequestMethod.DELETE)
-    public ApiResponse<Void> delete(@PathVariable UUID messageId) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID messageId) {
         messageService.delete(messageId);
-        return ApiResponse.success();
     }
 }

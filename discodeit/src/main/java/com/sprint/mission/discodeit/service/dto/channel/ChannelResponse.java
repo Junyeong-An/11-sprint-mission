@@ -11,7 +11,7 @@ public record ChannelResponse(
         UUID id,
         String name,
         String description,
-        ChannelType channelType,
+        ChannelType type,
         Instant lastMessageAt,
         List<UUID> participantIds,
         Instant createdAt,

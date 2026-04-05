@@ -8,8 +8,9 @@ import lombok.Builder;
 public record BinaryContentResponse(
         UUID id,
         Instant createdAt,
-        byte[] data,
         String fileName,
-        String contentType
+        long size,
+        String contentType,
+        byte[] bytes
 ) {
 }

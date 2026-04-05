@@ -70,7 +70,7 @@ public class BinaryContentService {
     public BinaryContentDownloadResponse download(UUID id) {
         BinaryContentResponse binaryContent = find(id);
         return new BinaryContentDownloadResponse(
-                binaryContent.data(),
+                binaryContent.bytes(),
                 resolveFileName(binaryContent.fileName(), id),
                 resolveContentType(binaryContent.contentType())
         );
@@ -106,9 +106,10 @@ public class BinaryContentService {
         return BinaryContentResponse.builder()
                 .id(binaryContent.getId())
                 .createdAt(binaryContent.getCreatedAt())
-                .data(binaryContent.getData())
                 .fileName(binaryContent.getFileName())
+                .size(binaryContent.getData().length)
                 .contentType(binaryContent.getContentType())
+                .bytes(binaryContent.getData())
                 .build();
     }
 
@@ -140,7 +141,7 @@ public class BinaryContentService {
                 String baseName = resolveFileName(binaryContent.fileName(), binaryContent.id());
                 String entryName = resolveUniqueFileName(baseName, fileNameCounter);
                 zos.putNextEntry(new ZipEntry(entryName));
-                zos.write(binaryContent.data());
+                zos.write(binaryContent.bytes());
                 zos.closeEntry();
             }
             zos.finish();

@@ -66,8 +66,8 @@ public class UserController {
     }
 
     @RequestMapping(value = "/{userId}", method = RequestMethod.DELETE)
-    public ApiResponse<Void> delete(@PathVariable UUID userId) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID userId) {
         userService.delete(userId);
-        return ApiResponse.success();
     }
 }
