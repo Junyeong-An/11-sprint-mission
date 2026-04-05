@@ -1,6 +1,5 @@
 package com.sprint.mission.discodeit.exception;
 
-import com.sprint.mission.discodeit.common.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +12,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(DiscodeitException.class)
-    public ResponseEntity<ApiResponse<ErrorResponse>> handleDiscodeitException(
+    public ResponseEntity<ErrorResponse> handleDiscodeitException(
             DiscodeitException exception,
             HttpServletRequest request
     ) {
@@ -21,7 +20,7 @@ public class GlobalExceptionHandler {
         String code = exception.getErrorCode().getCode();
         String message = exception.getMessage();
         ErrorResponse error = ErrorResponse.of(status, code, message, request.getRequestURI());
-        return ResponseEntity.status(status).body(ApiResponse.failure(code, message, error));
+        return ResponseEntity.status(status).body(error);
     }
 
     @ExceptionHandler({
@@ -29,7 +28,7 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class
     })
-    public ResponseEntity<ApiResponse<ErrorResponse>> handleBadRequest(
+    public ResponseEntity<ErrorResponse> handleBadRequest(
             Exception exception,
             HttpServletRequest request
     ) {
@@ -41,7 +40,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<ErrorResponse>> handleUnexpected(
+    public ResponseEntity<ErrorResponse> handleUnexpected(
             Exception exception,
             HttpServletRequest request
     ) {
@@ -53,14 +52,13 @@ public class GlobalExceptionHandler {
         );
     }
 
-    private ResponseEntity<ApiResponse<ErrorResponse>> respond(
+    private ResponseEntity<ErrorResponse> respond(
             HttpStatus status,
             String code,
             String message,
             HttpServletRequest request
     ) {
         ErrorResponse error = ErrorResponse.of(status, code, message, request.getRequestURI());
-        return ResponseEntity.status(status)
-                .body(ApiResponse.failure(code, message, error));
+        return ResponseEntity.status(status).body(error);
     }
 }

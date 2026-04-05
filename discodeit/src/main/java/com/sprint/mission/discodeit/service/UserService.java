@@ -1,5 +1,6 @@
 package com.sprint.mission.discodeit.service;
 
+import com.sprint.mission.discodeit.controller.dto.UserDto;
 import com.sprint.mission.discodeit.controller.dto.UserUpdateApiRequest;
 import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.User;
@@ -80,6 +81,12 @@ public class UserService {
         Map<UUID, UserStatus> statusByUserId = loadStatusMap(users);
         return users.stream()
                 .map(user -> toResponse(user, statusByUserId))
+                .toList();
+    }
+
+    public List<UserDto> findAllUserDtos() {
+        return findAll().stream()
+                .map(this::toUserDto)
                 .toList();
     }
 
@@ -264,6 +271,18 @@ public class UserService {
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
+    }
+
+    private UserDto toUserDto(UserResponse userResponse) {
+        return new UserDto(
+                userResponse.id(),
+                userResponse.createdAt(),
+                userResponse.updatedAt(),
+                userResponse.username(),
+                userResponse.email(),
+                userResponse.profileId(),
+                userResponse.online()
+        );
     }
 
     private boolean isBlank(String value) {
