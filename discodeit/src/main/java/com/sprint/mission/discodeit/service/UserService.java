@@ -90,10 +90,12 @@ public class UserService {
 
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-        validateUniqueUsername(request.userId(), request.username());
-        validateUniqueEmail(request.userId(), request.email());
 
-        user.update(request.username(), request.email(), request.password());
+        String updatedUsername = resolveUpdatedUsername(user, request);
+        String updatedEmail = resolveUpdatedEmail(user, request);
+        String updatedPassword = resolveUpdatedPassword(user, request);
+
+        user.update(updatedUsername, updatedEmail, updatedPassword);
         replaceProfileIfPresent(user, request.replacementProfile());
         User savedUser = userRepository.save(user);
         return toResponse(savedUser);
@@ -204,6 +206,29 @@ public class UserService {
                 .ifPresent(user -> {
                     throw new DiscodeitException(ErrorCode.DUPLICATE_EMAIL);
                 });
+    }
+
+    private String resolveUpdatedUsername(User user, UpdateUserRequest request) {
+        if (request.username() == null) {
+            return user.getUsername();
+        }
+        validateUniqueUsername(request.userId(), request.username());
+        return request.username();
+    }
+
+    private String resolveUpdatedEmail(User user, UpdateUserRequest request) {
+        if (request.email() == null) {
+            return user.getEmail();
+        }
+        validateUniqueEmail(request.userId(), request.email());
+        return request.email();
+    }
+
+    private String resolveUpdatedPassword(User user, UpdateUserRequest request) {
+        if (isBlank(request.password())) {
+            return user.getPassword();
+        }
+        return request.password();
     }
 
     private Map<UUID, UserStatus> loadStatusMap(List<User> users) {

@@ -1,6 +1,5 @@
 package com.sprint.mission.discodeit.controller;
 
-import com.sprint.mission.discodeit.common.ApiResponse;
 import com.sprint.mission.discodeit.controller.dto.MessageUpdateApiRequest;
 import com.sprint.mission.discodeit.service.MessageService;
 import com.sprint.mission.discodeit.service.dto.message.CreateMessageRequest;
@@ -28,30 +27,30 @@ public class MessageController {
     private final MessageService messageService;
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public ApiResponse<MessageResponse> find(@PathVariable UUID id) {
-        return ApiResponse.success(messageService.find(id));
+    public MessageResponse find(@PathVariable UUID id) {
+        return messageService.find(id);
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public ApiResponse<List<MessageResponse>> findAllByChannelId(@RequestParam UUID channelId) {
-        return ApiResponse.success(messageService.findAllByChannelId(channelId));
+    public List<MessageResponse> findAllByChannelId(@RequestParam UUID channelId) {
+        return messageService.findAllByChannelId(channelId);
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<MessageResponse> create(
+    public MessageResponse create(
             @RequestPart("messageCreateRequest") CreateMessageRequest messageCreateRequest,
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments
     ) {
-        return ApiResponse.success(messageService.create(messageCreateRequest, attachments));
+        return messageService.create(messageCreateRequest, attachments);
     }
 
     @RequestMapping(value = "/{messageId}", method = RequestMethod.PATCH)
-    public ApiResponse<MessageResponse> update(
+    public MessageResponse update(
             @PathVariable UUID messageId,
             @RequestBody MessageUpdateApiRequest request
     ) {
-        return ApiResponse.success(messageService.update(new UpdateMessageRequest(messageId, request.newContent())));
+        return messageService.update(new UpdateMessageRequest(messageId, request.newContent()));
     }
 
     @RequestMapping(value = "/{messageId}", method = RequestMethod.DELETE)

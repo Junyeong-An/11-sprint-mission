@@ -1,6 +1,5 @@
 package com.sprint.mission.discodeit.controller;
 
-import com.sprint.mission.discodeit.common.ApiResponse;
 import com.sprint.mission.discodeit.controller.dto.ChannelUpdateApiRequest;
 import com.sprint.mission.discodeit.service.ChannelService;
 import com.sprint.mission.discodeit.service.dto.channel.ChannelResponse;
@@ -26,37 +25,37 @@ public class ChannelController {
     private final ChannelService channelService;
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public ApiResponse<ChannelResponse> find(@PathVariable UUID id) {
-        return ApiResponse.success(channelService.find(id));
+    public ChannelResponse find(@PathVariable UUID id) {
+        return channelService.find(id);
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public ApiResponse<List<ChannelResponse>> findAllByUserId(@RequestParam UUID userId) {
-        return ApiResponse.success(channelService.findAllByUserId(userId));
+    public List<ChannelResponse> findAllByUserId(@RequestParam UUID userId) {
+        return channelService.findAllByUserId(userId);
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "/public", method = RequestMethod.POST)
-    public ApiResponse<ChannelResponse> createPublic(@RequestBody CreatePublicChannelRequest request) {
-        return ApiResponse.success(channelService.createPublicChannel(request));
+    public ChannelResponse createPublic(@RequestBody CreatePublicChannelRequest request) {
+        return channelService.createPublicChannel(request);
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "/private", method = RequestMethod.POST)
-    public ApiResponse<ChannelResponse> createPrivate(@RequestBody CreatePrivateChannelRequest request) {
-        return ApiResponse.success(channelService.createPrivateChannel(request));
+    public ChannelResponse createPrivate(@RequestBody CreatePrivateChannelRequest request) {
+        return channelService.createPrivateChannel(request);
     }
 
     @RequestMapping(value = "/{channelId}", method = RequestMethod.PATCH)
-    public ApiResponse<ChannelResponse> update(
+    public ChannelResponse update(
             @PathVariable UUID channelId,
             @RequestBody ChannelUpdateApiRequest request
     ) {
-        return ApiResponse.success(channelService.update(new UpdateChannelRequest(
+        return channelService.update(new UpdateChannelRequest(
                 channelId,
                 request.newName(),
                 request.newDescription()
-        )));
+        ));
     }
 
     @RequestMapping(value = "/{channelId}", method = RequestMethod.DELETE)
