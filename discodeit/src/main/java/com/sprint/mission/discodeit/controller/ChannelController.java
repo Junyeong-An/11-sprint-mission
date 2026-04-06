@@ -1,5 +1,6 @@
 package com.sprint.mission.discodeit.controller;
 
+import com.sprint.mission.discodeit.controller.dto.ChannelUpdateApiRequest;
 import com.sprint.mission.discodeit.service.ChannelService;
 import com.sprint.mission.discodeit.service.dto.channel.ChannelResponse;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequest;
@@ -33,25 +34,33 @@ public class ChannelController {
         return channelService.findAllByUserId(userId);
     }
 
+    @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "/public", method = RequestMethod.POST)
     public ChannelResponse createPublic(@RequestBody CreatePublicChannelRequest request) {
         return channelService.createPublicChannel(request);
     }
 
+    @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(value = "/private", method = RequestMethod.POST)
     public ChannelResponse createPrivate(@RequestBody CreatePrivateChannelRequest request) {
         return channelService.createPrivateChannel(request);
     }
 
-    @RequestMapping(method = RequestMethod.PUT)
-    public ChannelResponse update(@RequestBody UpdateChannelRequest request) {
-        return channelService.update(request);
+    @RequestMapping(value = "/{channelId}", method = RequestMethod.PATCH)
+    public ChannelResponse update(
+            @PathVariable UUID channelId,
+            @RequestBody ChannelUpdateApiRequest request
+    ) {
+        return channelService.update(new UpdateChannelRequest(
+                channelId,
+                request.newName(),
+                request.newDescription()
+        ));
     }
 
+    @RequestMapping(value = "/{channelId}", method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public void delete(@PathVariable UUID id) {
-        channelService.delete(id);
+    public void delete(@PathVariable UUID channelId) {
+        channelService.delete(channelId);
     }
 }
-

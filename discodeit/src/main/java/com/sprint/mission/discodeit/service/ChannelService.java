@@ -128,7 +128,7 @@ public class ChannelService {
                 .id(channel.getId())
                 .name(channel.getName())
                 .description(channel.getDescription())
-                .channelType(channel.getChannelType())
+                .type(channel.getChannelType())
                 .lastMessageAt(lastMessageAt)
                 .participantIds(participantIds)
                 .createdAt(channel.getCreatedAt())

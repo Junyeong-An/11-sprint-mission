@@ -16,13 +16,11 @@ public class GlobalExceptionHandler {
             DiscodeitException exception,
             HttpServletRequest request
     ) {
-        return ResponseEntity.status(exception.getErrorCode().getStatus())
-                .body(ErrorResponse.of(
-                        exception.getErrorCode().getStatus(),
-                        exception.getErrorCode().getCode(),
-                        exception.getMessage(),
-                        request.getRequestURI()
-                ));
+        HttpStatus status = exception.getErrorCode().getStatus();
+        String code = exception.getErrorCode().getCode();
+        String message = exception.getMessage();
+        ErrorResponse error = ErrorResponse.of(status, code, message, request.getRequestURI());
+        return ResponseEntity.status(status).body(error);
     }
 
     @ExceptionHandler({
@@ -60,7 +58,7 @@ public class GlobalExceptionHandler {
             String message,
             HttpServletRequest request
     ) {
-        return ResponseEntity.status(status)
-                .body(ErrorResponse.of(status, code, message, request.getRequestURI()));
+        ErrorResponse error = ErrorResponse.of(status, code, message, request.getRequestURI());
+        return ResponseEntity.status(status).body(error);
     }
 }

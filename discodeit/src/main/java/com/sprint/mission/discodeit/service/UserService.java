@@ -1,5 +1,7 @@
 package com.sprint.mission.discodeit.service;
 
+import com.sprint.mission.discodeit.controller.dto.UserDto;
+import com.sprint.mission.discodeit.controller.dto.UserUpdateApiRequest;
 import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
@@ -20,6 +22,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -61,11 +66,27 @@ public class UserService {
         return toResponse(savedUser);
     }
 
+    public UserResponse create(CreateUserRequest request, MultipartFile profile) {
+        CreateUserRequest mergedRequest = new CreateUserRequest(
+                request.username(),
+                request.email(),
+                request.password(),
+                toUserProfileRequest(profile)
+        );
+        return create(mergedRequest);
+    }
+
     public List<UserResponse> findAll() {
         List<User> users = userRepository.findAll();
         Map<UUID, UserStatus> statusByUserId = loadStatusMap(users);
         return users.stream()
                 .map(user -> toResponse(user, statusByUserId))
+                .toList();
+    }
+
+    public List<UserDto> findAllUserDtos() {
+        return findAll().stream()
+                .map(this::toUserDto)
                 .toList();
     }
 
@@ -76,13 +97,37 @@ public class UserService {
 
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-        validateUniqueUsername(request.userId(), request.username());
-        validateUniqueEmail(request.userId(), request.email());
 
-        user.update(request.username(), request.email(), request.password());
+        String updatedUsername = resolveUpdatedUsername(user, request);
+        String updatedEmail = resolveUpdatedEmail(user, request);
+        String updatedPassword = resolveUpdatedPassword(user, request);
+
+        user.update(updatedUsername, updatedEmail, updatedPassword);
         replaceProfileIfPresent(user, request.replacementProfile());
         User savedUser = userRepository.save(user);
         return toResponse(savedUser);
+    }
+
+    public UserResponse update(UUID userId, UpdateUserRequest request, MultipartFile profile) {
+        UpdateUserRequest mergedRequest = new UpdateUserRequest(
+                userId,
+                request.username(),
+                request.email(),
+                request.password(),
+                toUserProfileRequest(profile)
+        );
+        return update(mergedRequest);
+    }
+
+    public UserResponse update(UUID userId, UserUpdateApiRequest request, MultipartFile profile) {
+        UpdateUserRequest convertedRequest = new UpdateUserRequest(
+                userId,
+                request.newUsername(),
+                request.newEmail(),
+                request.newPassword(),
+                null
+        );
+        return update(userId, convertedRequest, profile);
     }
 
     private void validateCreateRequest(CreateUserRequest request) {
@@ -170,6 +215,29 @@ public class UserService {
                 });
     }
 
+    private String resolveUpdatedUsername(User user, UpdateUserRequest request) {
+        if (request.username() == null) {
+            return user.getUsername();
+        }
+        validateUniqueUsername(request.userId(), request.username());
+        return request.username();
+    }
+
+    private String resolveUpdatedEmail(User user, UpdateUserRequest request) {
+        if (request.email() == null) {
+            return user.getEmail();
+        }
+        validateUniqueEmail(request.userId(), request.email());
+        return request.email();
+    }
+
+    private String resolveUpdatedPassword(User user, UpdateUserRequest request) {
+        if (isBlank(request.password())) {
+            return user.getPassword();
+        }
+        return request.password();
+    }
+
     private Map<UUID, UserStatus> loadStatusMap(List<User> users) {
         List<UUID> userIds = users.stream()
                 .map(User::getId)
@@ -205,7 +273,34 @@ public class UserService {
                 .build();
     }
 
+    private UserDto toUserDto(UserResponse userResponse) {
+        return new UserDto(
+                userResponse.id(),
+                userResponse.createdAt(),
+                userResponse.updatedAt(),
+                userResponse.username(),
+                userResponse.email(),
+                userResponse.profileId(),
+                userResponse.online()
+        );
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private UserProfileRequest toUserProfileRequest(MultipartFile profile) {
+        if (profile == null || profile.isEmpty()) {
+            return null;
+        }
+        try {
+            return new UserProfileRequest(
+                    profile.getBytes(),
+                    profile.getOriginalFilename(),
+                    profile.getContentType()
+            );
+        } catch (IOException exception) {
+            throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "프로필 파일을 읽을 수 없어요.");
+        }
     }
 }

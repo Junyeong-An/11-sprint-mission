@@ -16,6 +16,10 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +44,16 @@ public class MessageService {
         );
 
         return toResponse(messageRepository.save(message));
+    }
+
+    public MessageResponse create(CreateMessageRequest request, List<MultipartFile> attachments) {
+        CreateMessageRequest mergedRequest = new CreateMessageRequest(
+                request.authorId(),
+                request.channelId(),
+                request.content(),
+                toAttachmentRequests(attachments)
+        );
+        return create(mergedRequest);
     }
 
     public MessageResponse find(UUID id) {
@@ -105,6 +119,29 @@ public class MessageService {
                 attachmentRequest.contentType()
         );
         return binaryContentRepository.save(binaryContent).getId();
+    }
+
+    private List<MessageAttachmentRequest> toAttachmentRequests(List<MultipartFile> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return List.of();
+        }
+
+        List<MessageAttachmentRequest> requests = new ArrayList<>();
+        for (MultipartFile attachment : attachments) {
+            if (attachment == null || attachment.isEmpty()) {
+                continue;
+            }
+            try {
+                requests.add(new MessageAttachmentRequest(
+                        attachment.getBytes(),
+                        attachment.getOriginalFilename(),
+                        attachment.getContentType()
+                ));
+            } catch (IOException exception) {
+                throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "첨부파일을 읽을 수 없어요.");
+            }
+        }
+        return requests;
     }
 
     private MessageResponse toResponse(Message message) {

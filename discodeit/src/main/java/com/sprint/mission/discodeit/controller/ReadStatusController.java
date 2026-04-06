@@ -1,5 +1,6 @@
 package com.sprint.mission.discodeit.controller;
 
+import com.sprint.mission.discodeit.controller.dto.ReadStatusUpdateApiRequest;
 import com.sprint.mission.discodeit.service.ReadStatusService;
 import com.sprint.mission.discodeit.service.dto.readstatus.CreateReadStatusByChannelRequest;
 import com.sprint.mission.discodeit.service.dto.readstatus.CreateReadStatusRequest;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/read-statuses")
+@RequestMapping("/api/readStatuses")
 public class ReadStatusController {
     private final ReadStatusService readStatusService;
 
@@ -32,7 +33,7 @@ public class ReadStatusController {
         return readStatusService.createByChannel(channelId, request.userId());
     }
 
-    @RequestMapping(value = "/channels/{channelId}/{readStatusId}", method = RequestMethod.PUT)
+    @RequestMapping(value = "/{readStatusId}/channels/{channelId}", method = RequestMethod.PUT)
     public ReadStatusResponse updateByChannel(
             @PathVariable UUID channelId,
             @PathVariable UUID readStatusId,
@@ -41,8 +42,8 @@ public class ReadStatusController {
         return readStatusService.updateByChannel(channelId, readStatusId, request.lastReadAt());
     }
 
-    @RequestMapping(value = "/users/{userId}", method = RequestMethod.GET)
-    public List<ReadStatusResponse> findAllByUser(@PathVariable UUID userId) {
+    @RequestMapping(method = RequestMethod.GET)
+    public List<ReadStatusResponse> findAllByUser(@RequestParam UUID userId) {
         return readStatusService.findAllByUserId(userId);
     }
 
@@ -51,24 +52,26 @@ public class ReadStatusController {
         return readStatusService.find(id);
     }
 
-    @RequestMapping(method = RequestMethod.GET)
-    public List<ReadStatusResponse> findAllByUserId(@RequestParam UUID userId) {
-        return readStatusService.findAllByUserId(userId);
-    }
-
     @RequestMapping(method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.CREATED)
     public ReadStatusResponse create(@RequestBody CreateReadStatusRequest request) {
         return readStatusService.create(request);
     }
 
-    @RequestMapping(method = RequestMethod.PUT)
-    public ReadStatusResponse update(@RequestBody UpdateReadStatusRequest request) {
-        return readStatusService.update(request);
+    @RequestMapping(value = "/{readStatusId}", method = RequestMethod.PATCH)
+    public ReadStatusResponse update(
+            @PathVariable UUID readStatusId,
+            @RequestBody ReadStatusUpdateApiRequest request
+    ) {
+        return readStatusService.update(new UpdateReadStatusRequest(
+                readStatusId,
+                request.newLastReadAt()
+        ));
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public void delete(@PathVariable UUID id) {
-        readStatusService.delete(id);
+    @RequestMapping(value = "/{readStatusId}", method = RequestMethod.DELETE)
+    public void delete(@PathVariable UUID readStatusId) {
+        readStatusService.delete(readStatusId);
     }
 }

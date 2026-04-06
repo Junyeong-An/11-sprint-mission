@@ -47,7 +47,8 @@ async function fetchAndRenderUsers() {
     try {
         const response = await fetch(ENDPOINTS.USERS);
         if (!response.ok) throw new Error('Failed to fetch users');
-        const users = await response.json();
+        const payload = await response.json();
+        const users = payload.data ?? payload;
         renderUserList(users);
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -59,16 +60,17 @@ async function fetchUserProfile(profileId) {
     try {
         const response = await fetch(`${ENDPOINTS.BINARY_CONTENT}?binaryContentId=${profileId}`);
         if (!response.ok) throw new Error('Failed to fetch profile');
-        const profile = await response.json();
+        const payload = await response.json();
+        const profile = payload.data ?? payload;
 
-        if (!profile.data) {
+        if (!profile.bytes) {
             return DEFAULT_AVATAR;
         }
 
         const contentType = profile.contentType && profile.contentType.trim()
             ? profile.contentType
             : 'application/octet-stream';
-        return `data:${contentType};base64,${profile.data}`;
+        return `data:${contentType};base64,${profile.bytes}`;
     } catch (error) {
         console.error('Error fetching profile:', error);
         return DEFAULT_AVATAR;
