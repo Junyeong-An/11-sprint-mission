@@ -15,10 +15,12 @@ import com.sprint.mission.discodeit.service.dto.channel.ChannelResponse;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
+
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -49,7 +51,7 @@ public class ChannelService {
                 .forEach(participantId -> {
                     userRepository.findById(participantId)
                             .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-                    readStatusRepository.save(new ReadStatus(participantId, savedChannel.getId()));
+                    readStatusRepository.save(new ReadStatus(participantId, savedChannel.getId(), savedChannel.getCreatedAt()));
                 });
 
         return toResponse(savedChannel);
