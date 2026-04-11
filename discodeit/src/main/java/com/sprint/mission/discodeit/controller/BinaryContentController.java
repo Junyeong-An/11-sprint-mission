@@ -32,9 +32,9 @@ public class BinaryContentController {
         return binaryContentService.find(binaryContentId);
     }
 
-    @RequestMapping(value = "/download/{id}", method = RequestMethod.GET)
-    public BinaryContentDownloadResponse download(@PathVariable UUID id) {
-        return binaryContentService.download(id);
+    @RequestMapping(value = "/{binaryContentId}/download", method = RequestMethod.GET)
+    public BinaryContentDownloadResponse download(@PathVariable UUID binaryContentId) {
+        return binaryContentService.download(binaryContentId);
     }
 
     @RequestMapping(value = "/download", method = RequestMethod.GET)

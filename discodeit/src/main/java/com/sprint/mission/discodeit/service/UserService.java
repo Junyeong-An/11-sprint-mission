@@ -10,6 +10,7 @@ import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.repository.UserStatusRepository;
+import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
 import com.sprint.mission.discodeit.service.dto.user.CreateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UpdateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserProfileRequest;
@@ -262,25 +263,43 @@ public class UserService {
     }
 
     private UserResponse toResponse(User user, boolean online) {
+        BinaryContentResponse profile = null;
+        if (user.getProfileId() != null) {
+            profile = binaryContentRepository.findById(user.getProfileId())
+                    .map(this::toBinaryContentResponse)
+                    .orElse(null);
+        }
         return UserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .profileId(user.getProfileId())
+                .profile(profile)
                 .online(online)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
     }
 
+    BinaryContentResponse toBinaryContentResponse(BinaryContent binaryContent) {
+        return BinaryContentResponse.builder()
+                .id(binaryContent.getId())
+                .createdAt(binaryContent.getCreatedAt())
+                .fileName(binaryContent.getFileName())
+                .size(binaryContent.getData().length)
+                .contentType(binaryContent.getContentType())
+                .bytes(binaryContent.getData())
+                .build();
+    }
+
     private UserDto toUserDto(UserResponse userResponse) {
+        UUID profileId = userResponse.profile() != null ? userResponse.profile().id() : null;
         return new UserDto(
                 userResponse.id(),
                 userResponse.createdAt(),
                 userResponse.updatedAt(),
                 userResponse.username(),
                 userResponse.email(),
-                userResponse.profileId(),
+                profileId,
                 userResponse.online()
         );
     }

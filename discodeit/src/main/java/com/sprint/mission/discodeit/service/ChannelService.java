@@ -15,6 +15,7 @@ import com.sprint.mission.discodeit.service.dto.channel.ChannelResponse;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
+import com.sprint.mission.discodeit.service.dto.user.UserResponse;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -32,6 +33,7 @@ public class ChannelService {
     private final MessageRepository messageRepository;
     private final ReadStatusRepository readStatusRepository;
     private final BinaryContentRepository binaryContentRepository;
+    private final UserService userService;
 
     public ChannelResponse createPublicChannel(CreatePublicChannelRequest request) {
         validatePublicChannelRequest(request);
@@ -119,10 +121,11 @@ public class ChannelService {
                 .max(Comparator.naturalOrder())
                 .orElse(null);
 
-        List<UUID> participantIds = channel.getChannelType() == ChannelType.PRIVATE
+        List<UserResponse> participants = channel.getChannelType() == ChannelType.PRIVATE
                 ? readStatusRepository.findByChannelId(channel.getId()).stream()
                 .map(ReadStatus::getUserId)
                 .distinct()
+                .map(userService::find)
                 .toList()
                 : null;
 
@@ -132,7 +135,7 @@ public class ChannelService {
                 .description(channel.getDescription())
                 .type(channel.getChannelType())
                 .lastMessageAt(lastMessageAt)
-                .participantIds(participantIds)
+                .participants(participants)
                 .createdAt(channel.getCreatedAt())
                 .updatedAt(channel.getUpdatedAt())
                 .build();

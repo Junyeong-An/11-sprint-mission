@@ -87,7 +87,7 @@ public class UserStatusService {
         return UserStatusResponse.builder()
                 .id(userStatus.getId())
                 .userId(userStatus.getUserId())
-                .lastConnectedAt(userStatus.getLastConnectedAt())
+                .lastActiveAt(userStatus.getLastConnectedAt())
                 .online(userStatus.isOnline())
                 .createdAt(userStatus.getCreatedAt())
                 .updatedAt(userStatus.getUpdatedAt())

@@ -8,7 +8,7 @@ import lombok.Builder;
 public record UserStatusResponse(
         UUID id,
         UUID userId,
-        Instant lastConnectedAt,
+        Instant lastActiveAt,
         boolean online,
         Instant createdAt,
         Instant updatedAt

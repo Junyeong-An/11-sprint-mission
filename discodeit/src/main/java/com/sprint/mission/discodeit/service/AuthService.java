@@ -1,11 +1,14 @@
 package com.sprint.mission.discodeit.service;
 
+import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.repository.UserStatusRepository;
+import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
 import com.sprint.mission.discodeit.service.dto.user.UserLoginRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +19,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
     private final UserRepository userRepository;
     private final UserStatusRepository userStatusRepository;
+    private final BinaryContentRepository binaryContentRepository;
 
     public UserResponse login(UserLoginRequest request) {
         validateLoginRequest(request);
@@ -29,14 +33,32 @@ public class AuthService {
         userStatus.updateLastConnectedAt();
         userStatusRepository.save(userStatus);
 
+        BinaryContentResponse profile = null;
+        if (user.getProfileId() != null) {
+            profile = binaryContentRepository.findById(user.getProfileId())
+                    .map(this::toBinaryContentResponse)
+                    .orElse(null);
+        }
+
         return UserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
-                .profileId(user.getProfileId())
+                .profile(profile)
                 .online(userStatus.isOnline())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    private BinaryContentResponse toBinaryContentResponse(BinaryContent binaryContent) {
+        return BinaryContentResponse.builder()
+                .id(binaryContent.getId())
+                .createdAt(binaryContent.getCreatedAt())
+                .fileName(binaryContent.getFileName())
+                .size(binaryContent.getData().length)
+                .contentType(binaryContent.getContentType())
+                .bytes(binaryContent.getData())
                 .build();
     }
 
