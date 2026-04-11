@@ -55,7 +55,7 @@ public class FileMessageRepository extends AbstractFileRepository<Message> imple
     @Override
     public List<Message> findAllByChannelId(UUID channelId) {
         return readAll().stream()
-                .filter(message -> message.getChannelId().equals(channelId))
+                .filter(message -> message.getChannel().getId().equals(channelId))
                 .toList();
     }
 
@@ -75,7 +75,7 @@ public class FileMessageRepository extends AbstractFileRepository<Message> imple
     @Override
     public void deleteByChannelId(UUID channelId) {
         List<Message> messages = readAll();
-        boolean removed = messages.removeIf(message -> message.getChannelId().equals(channelId));
+        boolean removed = messages.removeIf(message -> message.getChannel().getId().equals(channelId));
         if (removed) {
             writeAll(messages);
         }

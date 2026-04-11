@@ -3,32 +3,31 @@ package com.sprint.mission.discodeit.entity;
 import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 import lombok.Getter;
 
 @Getter
 public class UserStatus extends BaseUpdatableEntity {
     private static final Duration ONLINE_THRESHOLD = Duration.ofMinutes(5);
 
-    private final UUID userId;
-    private Instant lastConnectedAt;
+    private final User user;
+    private Instant lastActiveAt;
 
-    public UserStatus(UUID userId) {
+    public UserStatus(User user) {
         super();
-        this.userId = userId;
-        this.lastConnectedAt = Instant.now();
+        this.user = user;
+        this.lastActiveAt = Instant.now();
     }
 
-    public void updateLastConnectedAt() {
-        this.lastConnectedAt = Instant.now();
+    public void updateLastActiveAt() {
+        this.lastActiveAt = Instant.now();
     }
 
-    public void updateLastConnectedAt(Instant lastConnectedAt) {
-        this.lastConnectedAt = lastConnectedAt;
+    public void updateLastActiveAt(Instant lastActiveAt) {
+        this.lastActiveAt = lastActiveAt;
     }
 
     public boolean isOnline() {
         Instant onlineCutoff = Instant.now().minus(ONLINE_THRESHOLD);
-        return !lastConnectedAt.isBefore(onlineCutoff);
+        return !lastActiveAt.isBefore(onlineCutoff);
     }
 }

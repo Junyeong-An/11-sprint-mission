@@ -107,9 +107,9 @@ public class BinaryContentService {
                 .id(binaryContent.getId())
                 .createdAt(binaryContent.getCreatedAt())
                 .fileName(binaryContent.getFileName())
-                .size(binaryContent.getData().length)
+                .size(binaryContent.getSize())
                 .contentType(binaryContent.getContentType())
-                .bytes(binaryContent.getData())
+                .bytes(binaryContent.getBytes())
                 .build();
     }
 

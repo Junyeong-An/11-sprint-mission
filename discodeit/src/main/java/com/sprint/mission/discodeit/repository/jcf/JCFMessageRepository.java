@@ -49,7 +49,7 @@ public class JCFMessageRepository implements MessageRepository {
     @Override
     public List<Message> findAllByChannelId(UUID channelId) {
         return data.stream()
-                .filter(message -> message.getChannelId().equals(channelId))
+                .filter(message -> message.getChannel().getId().equals(channelId))
                 .toList();
     }
 
@@ -66,6 +66,6 @@ public class JCFMessageRepository implements MessageRepository {
 
     @Override
     public void deleteByChannelId(UUID channelId) {
-        data.removeIf(message -> message.getChannelId().equals(channelId));
+        data.removeIf(message -> message.getChannel().getId().equals(channelId));
     }
 }

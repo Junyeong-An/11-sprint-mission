@@ -15,17 +15,12 @@ import com.sprint.mission.discodeit.service.dto.user.CreateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UpdateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserProfileRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
@@ -43,8 +38,8 @@ public class UserService {
     public void delete(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-        if (user.getProfileId() != null) {
-            binaryContentRepository.deleteById(user.getProfileId());
+        if (user.getProfile() != null) {
+            binaryContentRepository.deleteById(user.getProfile().getId());
         }
         userStatusRepository.deleteByUserId(id);
         userRepository.deleteById(id);
@@ -55,15 +50,20 @@ public class UserService {
         validateUniqueUsername(request.username());
         validateUniqueEmail(request.email());
 
-        UUID profileId = saveProfileIfPresent(request.profile());
+        BinaryContent profile = saveProfileIfPresent(request.profile());
         User user = User.builder()
                 .username(request.username())
                 .email(request.email())
                 .password(request.password())
-                .profileId(profileId)
+                .profile(profile)
                 .build();
         User savedUser = userRepository.save(user);
-        userStatusRepository.save(new UserStatus(savedUser.getId()));
+
+        UserStatus userStatus = new UserStatus(savedUser);
+        userStatusRepository.save(userStatus);
+        savedUser.assignStatus(userStatus);
+        userRepository.save(savedUser);
+
         return toResponse(savedUser);
     }
 
@@ -78,10 +78,8 @@ public class UserService {
     }
 
     public List<UserResponse> findAll() {
-        List<User> users = userRepository.findAll();
-        Map<UUID, UserStatus> statusByUserId = loadStatusMap(users);
-        return users.stream()
-                .map(user -> toResponse(user, statusByUserId))
+        return userRepository.findAll().stream()
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -146,37 +144,33 @@ public class UserService {
         }
     }
 
-    private UUID saveProfileIfPresent(UserProfileRequest profile) {
+    private BinaryContent saveProfileIfPresent(UserProfileRequest profile) {
         if (profile == null) {
             return null;
         }
-
         BinaryContent binaryContent = new BinaryContent(
                 profile.data(),
                 profile.fileName(),
                 profile.contentType()
         );
-        BinaryContent saved = binaryContentRepository.save(binaryContent);
-        return saved.getId();
+        return binaryContentRepository.save(binaryContent);
     }
 
     private void replaceProfileIfPresent(User user, UserProfileRequest profile) {
         if (profile == null) {
             return;
         }
-
-        if (user.getProfileId() != null) {
-            binaryContentRepository.deleteById(user.getProfileId());
+        if (user.getProfile() != null) {
+            binaryContentRepository.deleteById(user.getProfile().getId());
         }
-        UUID newProfileId = saveProfileIfPresent(profile);
-        user.replaceProfile(newProfileId);
+        BinaryContent newProfile = saveProfileIfPresent(profile);
+        user.replaceProfile(newProfile);
     }
 
     private void validateUniqueUsername(UUID userId, String username) {
         if (isBlank(username)) {
             throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
         }
-
         userRepository.findByUserName(username)
                 .filter(foundUser -> !foundUser.getId().equals(userId))
                 .ifPresent(user -> {
@@ -188,7 +182,6 @@ public class UserService {
         if (isBlank(username)) {
             throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
         }
-
         userRepository.findByUserName(username)
                 .ifPresent(user -> {
                     throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
@@ -208,7 +201,6 @@ public class UserService {
         if (isBlank(email)) {
             throw new DiscodeitException(ErrorCode.EMAIL_REQUIRED);
         }
-
         userRepository.findByEmail(email)
                 .filter(foundUser -> !foundUser.getId().equals(userId))
                 .ifPresent(user -> {
@@ -239,36 +231,11 @@ public class UserService {
         return request.password();
     }
 
-    private Map<UUID, UserStatus> loadStatusMap(List<User> users) {
-        List<UUID> userIds = users.stream()
-                .map(User::getId)
-                .toList();
-
-        return userStatusRepository.findByUserIdIn(userIds).stream()
-                .collect(Collectors.toMap(UserStatus::getUserId, Function.identity()));
-    }
-
     private UserResponse toResponse(User user) {
-        boolean online = userStatusRepository.findByUserId(user.getId())
-                .map(UserStatus::isOnline)
-                .orElse(false);
-        return toResponse(user, online);
-    }
-
-    private UserResponse toResponse(User user, Map<UUID, UserStatus> statusByUserId) {
-        boolean online = Optional.ofNullable(statusByUserId.get(user.getId()))
-                .map(UserStatus::isOnline)
-                .orElse(false);
-        return toResponse(user, online);
-    }
-
-    private UserResponse toResponse(User user, boolean online) {
-        BinaryContentResponse profile = null;
-        if (user.getProfileId() != null) {
-            profile = binaryContentRepository.findById(user.getProfileId())
-                    .map(this::toBinaryContentResponse)
-                    .orElse(null);
-        }
+        boolean online = user.getStatus() != null && user.getStatus().isOnline();
+        BinaryContentResponse profile = user.getProfile() != null
+                ? toBinaryContentResponse(user.getProfile())
+                : null;
         return UserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
@@ -285,9 +252,9 @@ public class UserService {
                 .id(binaryContent.getId())
                 .createdAt(binaryContent.getCreatedAt())
                 .fileName(binaryContent.getFileName())
-                .size(binaryContent.getData().length)
+                .size(binaryContent.getSize())
                 .contentType(binaryContent.getContentType())
-                .bytes(binaryContent.getData())
+                .bytes(binaryContent.getBytes())
                 .build();
     }
 

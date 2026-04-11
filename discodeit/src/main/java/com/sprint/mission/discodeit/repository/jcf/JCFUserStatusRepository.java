@@ -39,14 +39,14 @@ public class JCFUserStatusRepository implements UserStatusRepository {
     @Override
     public Optional<UserStatus> findByUserId(UUID userId) {
         return data.stream()
-                .filter(userStatus -> userStatus.getUserId().equals(userId))
+                .filter(userStatus -> userStatus.getUser().getId().equals(userId))
                 .findFirst();
     }
 
     @Override
     public List<UserStatus> findByUserIdIn(List<UUID> userIds) {
         return data.stream()
-                .filter(userStatus -> userIds.contains(userStatus.getUserId()))
+                .filter(userStatus -> userIds.contains(userStatus.getUser().getId()))
                 .toList();
     }
 
@@ -65,6 +65,6 @@ public class JCFUserStatusRepository implements UserStatusRepository {
 
     @Override
     public void deleteByUserId(UUID userId) {
-        data.removeIf(userStatus -> userStatus.getUserId().equals(userId));
+        data.removeIf(userStatus -> userStatus.getUser().getId().equals(userId));
     }
 }

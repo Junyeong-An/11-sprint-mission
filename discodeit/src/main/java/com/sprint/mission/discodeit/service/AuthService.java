@@ -1,11 +1,9 @@
 package com.sprint.mission.discodeit.service;
 
-import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
-import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.repository.UserStatusRepository;
 import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
@@ -19,7 +17,7 @@ import org.springframework.stereotype.Service;
 public class AuthService {
     private final UserRepository userRepository;
     private final UserStatusRepository userStatusRepository;
-    private final BinaryContentRepository binaryContentRepository;
+    private final UserService userService;
 
     public UserResponse login(UserLoginRequest request) {
         validateLoginRequest(request);
@@ -28,17 +26,15 @@ public class AuthService {
         if (!user.getPassword().equals(request.password())) {
             throw new DiscodeitException(ErrorCode.INVALID_CREDENTIALS);
         }
+
         UserStatus userStatus = userStatusRepository.findByUserId(user.getId())
-                .orElseGet(() -> new UserStatus(user.getId()));
-        userStatus.updateLastConnectedAt();
+                .orElseGet(() -> new UserStatus(user));
+        userStatus.updateLastActiveAt();
         userStatusRepository.save(userStatus);
 
-        BinaryContentResponse profile = null;
-        if (user.getProfileId() != null) {
-            profile = binaryContentRepository.findById(user.getProfileId())
-                    .map(this::toBinaryContentResponse)
-                    .orElse(null);
-        }
+        BinaryContentResponse profile = user.getProfile() != null
+                ? userService.toBinaryContentResponse(user.getProfile())
+                : null;
 
         return UserResponse.builder()
                 .id(user.getId())
@@ -48,17 +44,6 @@ public class AuthService {
                 .online(userStatus.isOnline())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
-                .build();
-    }
-
-    private BinaryContentResponse toBinaryContentResponse(BinaryContent binaryContent) {
-        return BinaryContentResponse.builder()
-                .id(binaryContent.getId())
-                .createdAt(binaryContent.getCreatedAt())
-                .fileName(binaryContent.getFileName())
-                .size(binaryContent.getData().length)
-                .contentType(binaryContent.getContentType())
-                .bytes(binaryContent.getData())
                 .build();
     }
 

@@ -4,6 +4,7 @@ import com.sprint.mission.discodeit.entity.Channel;
 import com.sprint.mission.discodeit.entity.ChannelType;
 import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.entity.ReadStatus;
+import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.BinaryContentRepository;
@@ -16,12 +17,10 @@ import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequ
 import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
-
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -51,9 +50,9 @@ public class ChannelService {
         request.participantIds().stream()
                 .distinct()
                 .forEach(participantId -> {
-                    userRepository.findById(participantId)
+                    User user = userRepository.findById(participantId)
                             .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-                    readStatusRepository.save(new ReadStatus(participantId, savedChannel.getId(), savedChannel.getCreatedAt()));
+                    readStatusRepository.save(new ReadStatus(user, savedChannel, savedChannel.getCreatedAt()));
                 });
 
         return toResponse(savedChannel);
@@ -71,7 +70,7 @@ public class ChannelService {
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
 
         List<UUID> visiblePrivateChannelIds = readStatusRepository.findByUserId(userId).stream()
-                .map(ReadStatus::getChannelId)
+                .map(readStatus -> readStatus.getChannel().getId())
                 .distinct()
                 .toList();
 
@@ -85,7 +84,7 @@ public class ChannelService {
         validateUpdateChannelRequest(request);
 
         Channel channel = getChannel(request.channelId());
-        if (channel.getChannelType() == ChannelType.PRIVATE) {
+        if (channel.getType() == ChannelType.PRIVATE) {
             throw new DiscodeitException(ErrorCode.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED);
         }
 
@@ -95,15 +94,14 @@ public class ChannelService {
     }
 
     public void delete(UUID id) {
-        getChannel(id); // 해당 채널이 있음을 확인한다.
+        getChannel(id);
 
         messageRepository.findAllByChannelId(id).stream()
-                .flatMap(message -> message.getAttachmentIds().stream())
-                .toList()
+                .flatMap(message -> message.getAttachments().stream())
+                .map(attachment -> attachment.getId())
                 .forEach(binaryContentRepository::deleteById);
 
         messageRepository.deleteByChannelId(id);
-
         readStatusRepository.deleteByChannelId(id);
         channelRepository.deleteById(id);
     }
@@ -121,9 +119,9 @@ public class ChannelService {
                 .max(Comparator.naturalOrder())
                 .orElse(null);
 
-        List<UserResponse> participants = channel.getChannelType() == ChannelType.PRIVATE
+        List<UserResponse> participants = channel.getType() == ChannelType.PRIVATE
                 ? readStatusRepository.findByChannelId(channel.getId()).stream()
-                .map(ReadStatus::getUserId)
+                .map(readStatus -> readStatus.getUser().getId())
                 .distinct()
                 .map(userService::find)
                 .toList()
@@ -133,7 +131,7 @@ public class ChannelService {
                 .id(channel.getId())
                 .name(channel.getName())
                 .description(channel.getDescription())
-                .type(channel.getChannelType())
+                .type(channel.getType())
                 .lastMessageAt(lastMessageAt)
                 .participants(participants)
                 .createdAt(channel.getCreatedAt())
@@ -172,7 +170,7 @@ public class ChannelService {
     }
 
     private boolean isVisibleChannel(Channel channel, List<UUID> visiblePrivateChannelIds) {
-        if (channel.getChannelType() == ChannelType.PUBLIC) {
+        if (channel.getType() == ChannelType.PUBLIC) {
             return true;
         }
         return visiblePrivateChannelIds.contains(channel.getId());

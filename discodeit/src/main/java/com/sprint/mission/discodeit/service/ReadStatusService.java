@@ -1,6 +1,8 @@
 package com.sprint.mission.discodeit.service;
 
+import com.sprint.mission.discodeit.entity.Channel;
 import com.sprint.mission.discodeit.entity.ReadStatus;
+import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
@@ -24,16 +26,16 @@ public class ReadStatusService {
 
     public ReadStatusResponse create(CreateReadStatusRequest request) {
         validateCreateRequest(request);
-        ensureUserExists(request.userId());
-        ensureChannelExists(request.channelId());
+        User user = getUser(request.userId());
+        Channel channel = getChannel(request.channelId());
 
         boolean duplicated = readStatusRepository.findByUserId(request.userId()).stream()
-                .anyMatch(readStatus -> readStatus.getChannelId().equals(request.channelId()));
+                .anyMatch(readStatus -> readStatus.getChannel().getId().equals(request.channelId()));
         if (duplicated) {
             throw new DiscodeitException(ErrorCode.DUPLICATE_READ_STATUS);
         }
 
-        ReadStatus readStatus = new ReadStatus(request.userId(), request.channelId());
+        ReadStatus readStatus = new ReadStatus(user, channel);
         return toResponse(readStatusRepository.save(readStatus));
     }
 
@@ -49,7 +51,7 @@ public class ReadStatusService {
         if (userId == null) {
             throw new DiscodeitException(ErrorCode.USER_ID_REQUIRED);
         }
-        ensureUserExists(userId);
+        getUser(userId);
 
         return readStatusRepository.findByUserId(userId).stream()
                 .map(this::toResponse)
@@ -58,7 +60,6 @@ public class ReadStatusService {
 
     public ReadStatusResponse update(UpdateReadStatusRequest request) {
         validateUpdateRequest(request);
-
         ReadStatus readStatus = getReadStatus(request.readStatusId());
         readStatus.updateLastReadAt(request.lastReadAt());
         return toResponse(readStatusRepository.save(readStatus));
@@ -66,7 +67,7 @@ public class ReadStatusService {
 
     public ReadStatusResponse updateByChannel(UUID channelId, UUID readStatusId, Instant lastReadAt) {
         ReadStatus readStatus = getReadStatus(readStatusId);
-        if (!readStatus.getChannelId().equals(channelId)) {
+        if (!readStatus.getChannel().getId().equals(channelId)) {
             throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "해당 채널의 메시지 수신 정보가 아니에요.");
         }
         return update(new UpdateReadStatusRequest(readStatusId, lastReadAt));
@@ -84,23 +85,23 @@ public class ReadStatusService {
         return readStatusRepository.findById(id);
     }
 
-    private void ensureUserExists(UUID userId) {
-        userRepository.findById(userId)
+    private User getUser(UUID userId) {
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
     }
 
-    private void ensureChannelExists(UUID channelId) {
+    private Channel getChannel(UUID channelId) {
         if (channelId == null) {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
-        channelRepository.findById(channelId);
+        return channelRepository.findById(channelId);
     }
 
     private ReadStatusResponse toResponse(ReadStatus readStatus) {
         return ReadStatusResponse.builder()
                 .id(readStatus.getId())
-                .userId(readStatus.getUserId())
-                .channelId(readStatus.getChannelId())
+                .userId(readStatus.getUser().getId())
+                .channelId(readStatus.getChannel().getId())
                 .lastReadAt(readStatus.getLastReadAt())
                 .createdAt(readStatus.getCreatedAt())
                 .updatedAt(readStatus.getUpdatedAt())

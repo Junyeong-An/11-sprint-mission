@@ -5,20 +5,15 @@ import lombok.Getter;
 
 @Getter
 public class BinaryContent extends BaseEntity {
-    private final byte[] data;
     private final String fileName;
+    private final long size;
     private final String contentType;
+    private final byte[] bytes;
 
-    public BinaryContent() {
+    public BinaryContent(byte[] bytes, String fileName, String contentType) {
         super();
-        this.data = new byte[0];
-        this.fileName = "";
-        this.contentType = "";
-    }
-
-    public BinaryContent(byte[] data, String fileName, String contentType) {
-        super();
-        this.data = data == null ? new byte[0] : data;
+        this.bytes = bytes == null ? new byte[0] : bytes;
+        this.size = this.bytes.length;
         this.fileName = fileName == null ? "" : fileName;
         this.contentType = contentType == null ? "" : contentType;
     }

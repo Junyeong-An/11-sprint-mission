@@ -1,5 +1,6 @@
 package com.sprint.mission.discodeit.service;
 
+import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
@@ -23,13 +24,14 @@ public class UserStatusService {
 
     public UserStatusResponse create(CreateUserStatusRequest request) {
         validateCreateRequest(request);
-        ensureUserExists(request.userId());
+        User user = userRepository.findById(request.userId())
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
 
         if (userStatusRepository.findByUserId(request.userId()).isPresent()) {
             throw new DiscodeitException(ErrorCode.DUPLICATE_USER_STATUS);
         }
 
-        UserStatus userStatus = new UserStatus(request.userId());
+        UserStatus userStatus = new UserStatus(user);
         return toResponse(userStatusRepository.save(userStatus));
     }
 
@@ -45,25 +47,25 @@ public class UserStatusService {
 
     public UserStatusResponse update(UpdateUserStatusRequest request) {
         validateUpdateRequest(request);
-
         UserStatus userStatus = getUserStatus(request.userStatusId());
-        userStatus.updateLastConnectedAt(request.lastConnectedAt());
+        userStatus.updateLastActiveAt(request.lastConnectedAt());
         return toResponse(userStatusRepository.save(userStatus));
     }
 
     public UserStatusResponse updateByUserId(UpdateUserStatusByUserIdRequest request) {
         validateUpdateByUserIdRequest(request);
-        ensureUserExists(request.userId());
+        userRepository.findById(request.userId())
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
 
         UserStatus userStatus = userStatusRepository.findByUserId(request.userId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_STATUS_NOT_FOUND));
-        userStatus.updateLastConnectedAt(request.lastConnectedAt());
+        userStatus.updateLastActiveAt(request.lastConnectedAt());
         return toResponse(userStatusRepository.save(userStatus));
     }
 
-    public UserStatusResponse updateByUserId(UUID userId, Instant lastConnectedAt) {
-        Instant resolvedLastConnectedAt = lastConnectedAt != null ? lastConnectedAt : Instant.now();
-        return updateByUserId(new UpdateUserStatusByUserIdRequest(userId, resolvedLastConnectedAt));
+    public UserStatusResponse updateByUserId(UUID userId, Instant lastActiveAt) {
+        Instant resolved = lastActiveAt != null ? lastActiveAt : Instant.now();
+        return updateByUserId(new UpdateUserStatusByUserIdRequest(userId, resolved));
     }
 
     public void delete(UUID id) {
@@ -78,16 +80,11 @@ public class UserStatusService {
         return userStatusRepository.findById(id);
     }
 
-    private void ensureUserExists(UUID userId) {
-        userRepository.findById(userId)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-    }
-
     private UserStatusResponse toResponse(UserStatus userStatus) {
         return UserStatusResponse.builder()
                 .id(userStatus.getId())
-                .userId(userStatus.getUserId())
-                .lastActiveAt(userStatus.getLastConnectedAt())
+                .userId(userStatus.getUser().getId())
+                .lastActiveAt(userStatus.getLastActiveAt())
                 .online(userStatus.isOnline())
                 .createdAt(userStatus.getCreatedAt())
                 .updatedAt(userStatus.getUpdatedAt())

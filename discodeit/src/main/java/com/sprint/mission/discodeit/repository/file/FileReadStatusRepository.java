@@ -47,14 +47,14 @@ public class FileReadStatusRepository extends AbstractFileRepository<ReadStatus>
     @Override
     public List<ReadStatus> findByChannelId(UUID channelId) {
         return readAll().stream()
-                .filter(readStatus -> readStatus.getChannelId().equals(channelId))
+                .filter(readStatus -> readStatus.getChannel().getId().equals(channelId))
                 .toList();
     }
 
     @Override
     public List<ReadStatus> findByUserId(UUID userId) {
         return readAll().stream()
-                .filter(readStatus -> readStatus.getUserId().equals(userId))
+                .filter(readStatus -> readStatus.getUser().getId().equals(userId))
                 .toList();
     }
 
@@ -76,7 +76,7 @@ public class FileReadStatusRepository extends AbstractFileRepository<ReadStatus>
     @Override
     public void deleteByChannelId(UUID channelId) {
         List<ReadStatus> data = readAll();
-        data.removeIf(readStatus -> readStatus.getChannelId().equals(channelId));
+        data.removeIf(readStatus -> readStatus.getChannel().getId().equals(channelId));
         writeAll(data);
     }
 }

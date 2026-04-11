@@ -7,13 +7,13 @@ import lombok.Getter;
 public class Channel extends BaseUpdatableEntity {
     private String name;
     private String description;
-    private ChannelType channelType;
+    private ChannelType type;
 
-    public Channel(String name, String description, ChannelType channelType) {
+    public Channel(String name, String description, ChannelType type) {
         super();
         this.name = name;
         this.description = description;
-        this.channelType = channelType;
+        this.type = type;
     }
 
     public void update(String name, String description) {
