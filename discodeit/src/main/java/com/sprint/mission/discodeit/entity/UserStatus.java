@@ -21,12 +21,10 @@ public class UserStatus extends BaseUpdatableEntity {
 
     public void updateLastConnectedAt() {
         this.lastConnectedAt = Instant.now();
-        touchUpdatedAt();
     }
 
     public void updateLastConnectedAt(Instant lastConnectedAt) {
         this.lastConnectedAt = lastConnectedAt;
-        touchUpdatedAt();
     }
 
     public boolean isOnline() {

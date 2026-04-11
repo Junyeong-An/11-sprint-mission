@@ -19,7 +19,6 @@ public class Channel extends BaseUpdatableEntity {
     public void update(String name, String description) {
         this.name = name;
         this.description = description;
-        touchUpdatedAt();
     }
 
     public static Channel publicChannel(String name, String description) {

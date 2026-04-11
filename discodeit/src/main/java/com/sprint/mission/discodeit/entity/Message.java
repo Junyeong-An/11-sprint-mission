@@ -30,6 +30,5 @@ public class Message extends BaseUpdatableEntity {
 
     public void update(String content) {
         this.content = content;
-        touchUpdatedAt();
     }
 }

@@ -31,11 +31,9 @@ public class User extends BaseUpdatableEntity {
         if (password != null) {
             this.password = password;
         }
-        touchUpdatedAt();
     }
 
     public void replaceProfile(UUID newProfileId) {
         this.profileId = newProfileId;
-        touchUpdatedAt();
     }
 }
