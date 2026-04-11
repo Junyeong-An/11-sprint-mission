@@ -1,16 +1,41 @@
 package com.sprint.mission.discodeit.entity;
 
 import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
 
 @Getter
+@Entity
+@Table(name = "messages")
 public class Message extends BaseUpdatableEntity {
-    private final User author;
-    private final Channel channel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id", nullable = false)
+    private User author;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "channel_id", nullable = false)
+    private Channel channel;
+
+    @Column(nullable = false)
     private String content;
-    private final List<BinaryContent> attachments = new ArrayList<>();
+
+    @OneToMany
+    @JoinTable(
+            name = "message_attachments",
+            joinColumns = @JoinColumn(name = "message_id"),
+            inverseJoinColumns = @JoinColumn(name = "binary_content_id")
+    )
+    private List<BinaryContent> attachments = new ArrayList<>();
 
     public Message(User author, Channel channel, String content) {
         super();
@@ -24,6 +49,10 @@ public class Message extends BaseUpdatableEntity {
         if (attachments != null) {
             this.attachments.addAll(attachments);
         }
+    }
+
+    protected Message() {
+        // JPA 기본 생성자
     }
 
     public void update(String content) {

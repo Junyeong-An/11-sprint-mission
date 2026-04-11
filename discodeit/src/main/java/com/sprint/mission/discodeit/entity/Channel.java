@@ -1,12 +1,26 @@
 package com.sprint.mission.discodeit.entity;
 
 import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Table;
 import lombok.Getter;
 
 @Getter
+@Entity
+@Table(name = "channels")
 public class Channel extends BaseUpdatableEntity {
+
+    @Column
     private String name;
+
+    @Column
     private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private ChannelType type;
 
     public Channel(String name, String description, ChannelType type) {
@@ -14,6 +28,10 @@ public class Channel extends BaseUpdatableEntity {
         this.name = name;
         this.description = description;
         this.type = type;
+    }
+
+    protected Channel() {
+        // JPA 기본 생성자
     }
 
     public void update(String name, String description) {

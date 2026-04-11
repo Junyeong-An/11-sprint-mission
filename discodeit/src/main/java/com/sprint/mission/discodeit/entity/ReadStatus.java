@@ -1,13 +1,29 @@
 package com.sprint.mission.discodeit.entity;
 
 import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import lombok.Getter;
 
 @Getter
+@Entity
+@Table(name = "read_statuses")
 public class ReadStatus extends BaseUpdatableEntity {
-    private final User user;
-    private final Channel channel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "channel_id", nullable = false)
+    private Channel channel;
+
+    @Column
     private Instant lastReadAt;
 
     public ReadStatus(User user, Channel channel) {
@@ -21,6 +37,10 @@ public class ReadStatus extends BaseUpdatableEntity {
         this.user = user;
         this.channel = channel;
         this.lastReadAt = lastReadAt;
+    }
+
+    protected ReadStatus() {
+        // JPA 기본 생성자
     }
 
     public void markAsReadNow() {
