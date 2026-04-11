@@ -8,12 +8,18 @@ import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
+import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
 import com.sprint.mission.discodeit.service.dto.message.CreateMessageRequest;
 import com.sprint.mission.discodeit.service.dto.message.MessageAttachmentRequest;
 import com.sprint.mission.discodeit.service.dto.message.MessageResponse;
 import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
+import com.sprint.mission.discodeit.service.dto.PageResponse;
+import com.sprint.mission.discodeit.service.dto.user.UserResponse;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,6 +34,7 @@ public class MessageService {
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
     private final BinaryContentRepository binaryContentRepository;
+    private final UserService userService;
 
     public MessageResponse create(CreateMessageRequest request) {
         validateCreateRequest(request);
@@ -60,15 +67,50 @@ public class MessageService {
         return toResponse(getMessage(id));
     }
 
-    public List<MessageResponse> findAllByChannelId(UUID channelId) {
+    public PageResponse<MessageResponse> findAllByChannelId(UUID channelId, Pageable pageable) {
         if (channelId == null) {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
         getChannel(channelId);
 
-        return messageRepository.findAllByChannelId(channelId).stream()
-                .map(this::toResponse)
-                .toList();
+        List<Message> allMessages = messageRepository.findAllByChannelId(channelId);
+        List<Message> sorted = applySorting(allMessages, pageable.getSort());
+
+        long totalElements = sorted.size();
+        int pageNumber = pageable.getPageNumber();
+        int pageSize = pageable.getPageSize();
+        int start = pageNumber * pageSize;
+        int end = (int) Math.min((long) start + pageSize, totalElements);
+
+        List<MessageResponse> pageContent = start >= totalElements
+                ? List.of()
+                : sorted.subList(start, end).stream().map(this::toResponse).toList();
+
+        return PageResponse.<MessageResponse>builder()
+                .content(pageContent)
+                .number(pageNumber)
+                .size(pageSize)
+                .hasNext(end < totalElements)
+                .totalElements(totalElements)
+                .build();
+    }
+
+    private List<Message> applySorting(List<Message> messages, Sort sort) {
+        if (sort.isUnsorted()) {
+            return messages.stream()
+                    .sorted(Comparator.comparing(Message::getCreatedAt).reversed())
+                    .toList();
+        }
+
+        Comparator<Message> comparator = Comparator.comparing(Message::getCreatedAt).reversed();
+        for (Sort.Order order : sort) {
+            if ("createdAt".equals(order.getProperty())) {
+                comparator = order.isAscending()
+                        ? Comparator.comparing(Message::getCreatedAt)
+                        : Comparator.comparing(Message::getCreatedAt).reversed();
+            }
+        }
+        return messages.stream().sorted(comparator).toList();
     }
 
     public MessageResponse update(UpdateMessageRequest request) {
@@ -145,12 +187,21 @@ public class MessageService {
     }
 
     private MessageResponse toResponse(Message message) {
+        UserResponse author = userService.find(message.getAuthorId());
+
+        List<BinaryContentResponse> attachments = message.getAttachmentIds().stream()
+                .map(id -> binaryContentRepository.findById(id)
+                        .map(userService::toBinaryContentResponse)
+                        .orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
         return MessageResponse.builder()
                 .id(message.getId())
-                .authorId(message.getAuthorId())
+                .author(author)
                 .channelId(message.getChannelId())
                 .content(message.getContent())
-                .attachmentIds(List.copyOf(message.getAttachmentIds()))
+                .attachments(attachments)
                 .createdAt(message.getCreatedAt())
                 .updatedAt(message.getUpdatedAt())
                 .build();

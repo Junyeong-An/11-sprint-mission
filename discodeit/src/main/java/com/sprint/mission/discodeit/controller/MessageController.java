@@ -2,11 +2,15 @@ package com.sprint.mission.discodeit.controller;
 
 import com.sprint.mission.discodeit.controller.dto.MessageUpdateApiRequest;
 import com.sprint.mission.discodeit.service.MessageService;
+import com.sprint.mission.discodeit.service.dto.PageResponse;
 import com.sprint.mission.discodeit.service.dto.message.CreateMessageRequest;
 import com.sprint.mission.discodeit.service.dto.message.MessageResponse;
 import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,8 +36,11 @@ public class MessageController {
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public List<MessageResponse> findAllByChannelId(@RequestParam UUID channelId) {
-        return messageService.findAllByChannelId(channelId);
+    public PageResponse<MessageResponse> findAllByChannelId(
+            @RequestParam UUID channelId,
+            @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return messageService.findAllByChannelId(channelId, pageable);
     }
 
     @ResponseStatus(HttpStatus.CREATED)
