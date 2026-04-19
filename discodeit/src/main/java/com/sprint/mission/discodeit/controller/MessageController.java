@@ -4,7 +4,7 @@ import com.sprint.mission.discodeit.controller.dto.MessageUpdateApiRequest;
 import com.sprint.mission.discodeit.service.MessageService;
 import com.sprint.mission.discodeit.service.dto.PageResponse;
 import com.sprint.mission.discodeit.service.dto.message.CreateMessageRequest;
-import com.sprint.mission.discodeit.service.dto.message.MessageResponse;
+import com.sprint.mission.discodeit.service.dto.message.MessageDto;
 import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
 import java.util.List;
 import java.util.UUID;
@@ -31,12 +31,12 @@ public class MessageController {
     private final MessageService messageService;
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public MessageResponse find(@PathVariable UUID id) {
+    public MessageDto find(@PathVariable UUID id) {
         return messageService.find(id);
     }
 
     @RequestMapping(method = RequestMethod.GET)
-    public PageResponse<MessageResponse> findAllByChannelId(
+    public PageResponse<MessageDto> findAllByChannelId(
             @RequestParam UUID channelId,
             @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
     ) {
@@ -45,7 +45,7 @@ public class MessageController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @RequestMapping(method = RequestMethod.POST, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public MessageResponse create(
+    public MessageDto create(
             @RequestPart("messageCreateRequest") CreateMessageRequest messageCreateRequest,
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments
     ) {
@@ -53,7 +53,7 @@ public class MessageController {
     }
 
     @RequestMapping(value = "/{messageId}", method = RequestMethod.PATCH)
-    public MessageResponse update(
+    public MessageDto update(
             @PathVariable UUID messageId,
             @RequestBody MessageUpdateApiRequest request
     ) {

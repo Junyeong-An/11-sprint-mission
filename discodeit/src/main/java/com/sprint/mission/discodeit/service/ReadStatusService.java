@@ -5,11 +5,12 @@ import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.mapper.ReadStatusMapper;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.service.dto.readstatus.CreateReadStatusRequest;
-import com.sprint.mission.discodeit.service.dto.readstatus.ReadStatusResponse;
+import com.sprint.mission.discodeit.service.dto.readstatus.ReadStatusDto;
 import com.sprint.mission.discodeit.service.dto.readstatus.UpdateReadStatusRequest;
 
 import java.time.Instant;
@@ -28,9 +29,10 @@ public class ReadStatusService {
     private final ReadStatusRepository readStatusRepository;
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
+    private final ReadStatusMapper readStatusMapper;
 
     @Transactional
-    public ReadStatusResponse create(CreateReadStatusRequest request) {
+    public ReadStatusDto create(CreateReadStatusRequest request) {
         validateCreateRequest(request);
         User user = getUser(request.userId());
         Channel channel = getChannel(request.channelId());
@@ -40,40 +42,40 @@ public class ReadStatusService {
         }
 
         ReadStatus readStatus = new ReadStatus(user, channel);
-        return toResponse(readStatusRepository.save(readStatus));
+        return toDto(readStatusRepository.save(readStatus));
     }
 
     @Transactional
-    public ReadStatusResponse createByChannel(UUID channelId, UUID userId) {
+    public ReadStatusDto createByChannel(UUID channelId, UUID userId) {
         return create(new CreateReadStatusRequest(userId, channelId));
     }
 
-    public ReadStatusResponse find(UUID id) {
-        return toResponse(getReadStatus(id));
+    public ReadStatusDto find(UUID id) {
+        return toDto(getReadStatus(id));
     }
 
-    public List<ReadStatusResponse> findAllByUserId(UUID userId) {
+    public List<ReadStatusDto> findAllByUserId(UUID userId) {
         if (userId == null) {
             throw new DiscodeitException(ErrorCode.USER_ID_REQUIRED);
         }
         getUser(userId);
 
         return readStatusRepository.findAllByUserId(userId).stream()
-                .map(this::toResponse)
+                .map(this::toDto)
                 .toList();
     }
 
     @Transactional
-    public ReadStatusResponse update(UpdateReadStatusRequest request) {
+    public ReadStatusDto update(UpdateReadStatusRequest request) {
         validateUpdateRequest(request);
         ReadStatus readStatus = getReadStatus(request.readStatusId());
         // 변경 감지로 자동 반영
         readStatus.updateLastReadAt(request.lastReadAt());
-        return toResponse(readStatus);
+        return toDto(readStatus);
     }
 
     @Transactional
-    public ReadStatusResponse updateByChannel(UUID channelId, UUID readStatusId, Instant lastReadAt) {
+    public ReadStatusDto updateByChannel(UUID channelId, UUID readStatusId, Instant lastReadAt) {
         ReadStatus readStatus = getReadStatus(readStatusId);
         if (!readStatus.getChannel().getId().equals(channelId)) {
             throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "해당 채널의 메시지 수신 정보가 아니에요.");
@@ -108,15 +110,8 @@ public class ReadStatusService {
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND));
     }
 
-    private ReadStatusResponse toResponse(ReadStatus readStatus) {
-        return ReadStatusResponse.builder()
-                .id(readStatus.getId())
-                .userId(readStatus.getUser().getId())
-                .channelId(readStatus.getChannel().getId())
-                .lastReadAt(readStatus.getLastReadAt())
-                .createdAt(readStatus.getCreatedAt())
-                .updatedAt(readStatus.getUpdatedAt())
-                .build();
+    private ReadStatusDto toDto(ReadStatus readStatus) {
+        return readStatusMapper.toDto(readStatus);
     }
 
     private void validateCreateRequest(CreateReadStatusRequest request) {

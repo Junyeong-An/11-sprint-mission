@@ -6,16 +6,16 @@ import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.mapper.MessageMapper;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
+import com.sprint.mission.discodeit.storage.BinaryContentStorage;
 import com.sprint.mission.discodeit.service.dto.PageResponse;
-import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
 import com.sprint.mission.discodeit.service.dto.message.CreateMessageRequest;
 import com.sprint.mission.discodeit.service.dto.message.MessageAttachmentRequest;
-import com.sprint.mission.discodeit.service.dto.message.MessageResponse;
+import com.sprint.mission.discodeit.service.dto.message.MessageDto;
 import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
-import com.sprint.mission.discodeit.service.dto.user.UserResponse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,10 +38,11 @@ public class MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
-    private final UserService userService;
+    private final MessageMapper messageMapper;
+    private final BinaryContentStorage binaryContentStorage;
 
     @Transactional
-    public MessageResponse create(CreateMessageRequest request) {
+    public MessageDto create(CreateMessageRequest request) {
         validateCreateRequest(request);
         User author = userRepository.findById(request.authorId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
@@ -51,11 +52,11 @@ public class MessageService {
         List<BinaryContent> attachments = buildAttachments(request.attachments());
         Message message = new Message(author, channel, request.content(), attachments);
 
-        return toResponse(messageRepository.save(message));
+        return toDto(messageRepository.save(message));
     }
 
     @Transactional
-    public MessageResponse create(CreateMessageRequest request, List<MultipartFile> attachments) {
+    public MessageDto create(CreateMessageRequest request, List<MultipartFile> attachments) {
         CreateMessageRequest mergedRequest = new CreateMessageRequest(
                 request.authorId(),
                 request.channelId(),
@@ -65,11 +66,11 @@ public class MessageService {
         return create(mergedRequest);
     }
 
-    public MessageResponse find(UUID id) {
-        return toResponse(getMessage(id));
+    public MessageDto find(UUID id) {
+        return toDto(getMessage(id));
     }
 
-    public PageResponse<MessageResponse> findAllByChannelId(UUID channelId, Pageable pageable) {
+    public PageResponse<MessageDto> findAllByChannelId(UUID channelId, Pageable pageable) {
         if (channelId == null) {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
@@ -84,11 +85,11 @@ public class MessageService {
         int start = pageNumber * pageSize;
         int end = (int) Math.min((long) start + pageSize, totalElements);
 
-        List<MessageResponse> pageContent = start >= totalElements
+        List<MessageDto> pageContent = start >= totalElements
                 ? List.of()
-                : sorted.subList(start, end).stream().map(this::toResponse).toList();
+                : sorted.subList(start, end).stream().map(this::toDto).toList();
 
-        return PageResponse.<MessageResponse>builder()
+        return PageResponse.<MessageDto>builder()
                 .content(pageContent)
                 .number(pageNumber)
                 .size(pageSize)
@@ -98,12 +99,12 @@ public class MessageService {
     }
 
     @Transactional
-    public MessageResponse update(UpdateMessageRequest request) {
+    public MessageDto update(UpdateMessageRequest request) {
         validateUpdateRequest(request);
         Message message = getMessage(request.messageId());
         // 변경 감지(dirty checking)
         message.update(request.content());
-        return toResponse(message);
+        return toDto(message);
     }
 
     @Transactional
@@ -159,12 +160,14 @@ public class MessageService {
         if (attachmentRequest == null) {
             throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "첨부파일 정보가 비어있어요.");
         }
-        // Message cascade로 저장되므로 별도 save 불필요
-        return new BinaryContent(
+        BinaryContent binaryContent = new BinaryContent(
                 attachmentRequest.data(),
                 attachmentRequest.fileName(),
                 attachmentRequest.contentType()
         );
+        // Message cascade 저장 전에 bytes를 스토리지에 저장 (ID는 생성자에서 이미 할당됨)
+        binaryContentStorage.put(binaryContent.getId(), attachmentRequest.data());
+        return binaryContent;
     }
 
     private List<MessageAttachmentRequest> toAttachmentRequests(List<MultipartFile> attachments) {
@@ -189,23 +192,8 @@ public class MessageService {
         return requests;
     }
 
-    private MessageResponse toResponse(Message message) {
-        // 지연 로딩: author 프록시는 접근 시점에 초기화됨
-        UserResponse author = userService.find(message.getAuthor().getId());
-
-        List<BinaryContentResponse> attachments = message.getAttachments().stream()
-                .map(userService::toBinaryContentResponse)
-                .toList();
-
-        return MessageResponse.builder()
-                .id(message.getId())
-                .author(author)
-                .channelId(message.getChannel().getId())
-                .content(message.getContent())
-                .attachments(attachments)
-                .createdAt(message.getCreatedAt())
-                .updatedAt(message.getUpdatedAt())
-                .build();
+    private MessageDto toDto(Message message) {
+        return messageMapper.toDto(message);
     }
 
     private void validateCreateRequest(CreateMessageRequest request) {

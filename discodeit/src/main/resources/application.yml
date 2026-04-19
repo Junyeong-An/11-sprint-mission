@@ -19,6 +19,11 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.orm.jdbc.bind: trace
 
+discodeit:
+  storage:
+    local:
+      root-dir: ./.discodeit/storage
+
 springdoc:
   api-docs:
     path: /api-docs

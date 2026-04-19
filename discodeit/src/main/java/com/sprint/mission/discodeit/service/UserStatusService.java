@@ -4,12 +4,13 @@ import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.mapper.UserStatusMapper;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.repository.UserStatusRepository;
 import com.sprint.mission.discodeit.service.dto.userstatus.CreateUserStatusRequest;
 import com.sprint.mission.discodeit.service.dto.userstatus.UpdateUserStatusByUserIdRequest;
 import com.sprint.mission.discodeit.service.dto.userstatus.UpdateUserStatusRequest;
-import com.sprint.mission.discodeit.service.dto.userstatus.UserStatusResponse;
+import com.sprint.mission.discodeit.service.dto.userstatus.UserStatusDto;
 
 import java.time.Instant;
 import java.util.List;
@@ -26,9 +27,10 @@ public class UserStatusService {
 
     private final UserStatusRepository userStatusRepository;
     private final UserRepository userRepository;
+    private final UserStatusMapper userStatusMapper;
 
     @Transactional
-    public UserStatusResponse create(CreateUserStatusRequest request) {
+    public UserStatusDto create(CreateUserStatusRequest request) {
         validateCreateRequest(request);
         User user = userRepository.findById(request.userId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
@@ -38,30 +40,30 @@ public class UserStatusService {
         }
 
         UserStatus userStatus = new UserStatus(user);
-        return toResponse(userStatusRepository.save(userStatus));
+        return toDto(userStatusRepository.save(userStatus));
     }
 
-    public UserStatusResponse find(UUID id) {
-        return toResponse(getUserStatus(id));
+    public UserStatusDto find(UUID id) {
+        return toDto(getUserStatus(id));
     }
 
-    public List<UserStatusResponse> findAll() {
+    public List<UserStatusDto> findAll() {
         return userStatusRepository.findAll().stream()
-                .map(this::toResponse)
+                .map(this::toDto)
                 .toList();
     }
 
     @Transactional
-    public UserStatusResponse update(UpdateUserStatusRequest request) {
+    public UserStatusDto update(UpdateUserStatusRequest request) {
         validateUpdateRequest(request);
         UserStatus userStatus = getUserStatus(request.userStatusId());
         // 변경 감지로 반영
         userStatus.updateLastActiveAt(request.lastConnectedAt());
-        return toResponse(userStatus);
+        return toDto(userStatus);
     }
 
     @Transactional
-    public UserStatusResponse updateByUserId(UpdateUserStatusByUserIdRequest request) {
+    public UserStatusDto updateByUserId(UpdateUserStatusByUserIdRequest request) {
         validateUpdateByUserIdRequest(request);
         userRepository.findById(request.userId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
@@ -70,11 +72,11 @@ public class UserStatusService {
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_STATUS_NOT_FOUND));
         // 변경 감지로 반영
         userStatus.updateLastActiveAt(request.lastConnectedAt());
-        return toResponse(userStatus);
+        return toDto(userStatus);
     }
 
     @Transactional
-    public UserStatusResponse updateByUserId(UUID userId, Instant lastActiveAt) {
+    public UserStatusDto updateByUserId(UUID userId, Instant lastActiveAt) {
         Instant resolved = lastActiveAt != null ? lastActiveAt : Instant.now();
         return updateByUserId(new UpdateUserStatusByUserIdRequest(userId, resolved));
     }
@@ -93,15 +95,8 @@ public class UserStatusService {
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_STATUS_NOT_FOUND));
     }
 
-    private UserStatusResponse toResponse(UserStatus userStatus) {
-        return UserStatusResponse.builder()
-                .id(userStatus.getId())
-                .userId(userStatus.getUser().getId())
-                .lastActiveAt(userStatus.getLastActiveAt())
-                .online(userStatus.isOnline())
-                .createdAt(userStatus.getCreatedAt())
-                .updatedAt(userStatus.getUpdatedAt())
-                .build();
+    private UserStatusDto toDto(UserStatus userStatus) {
+        return userStatusMapper.toDto(userStatus);
     }
 
     private void validateCreateRequest(CreateUserStatusRequest request) {

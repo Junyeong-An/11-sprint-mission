@@ -1,18 +1,18 @@
 package com.sprint.mission.discodeit.service;
 
-import com.sprint.mission.discodeit.controller.dto.UserDto;
 import com.sprint.mission.discodeit.controller.dto.UserUpdateApiRequest;
 import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.mapper.UserMapper;
 import com.sprint.mission.discodeit.repository.UserRepository;
-import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
 import com.sprint.mission.discodeit.service.dto.user.CreateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UpdateUserRequest;
+import com.sprint.mission.discodeit.service.dto.user.UserDto;
 import com.sprint.mission.discodeit.service.dto.user.UserProfileRequest;
-import com.sprint.mission.discodeit.service.dto.user.UserResponse;
+import com.sprint.mission.discodeit.storage.BinaryContentStorage;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,9 +29,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
+    private final BinaryContentStorage binaryContentStorage;
 
     @Transactional
-    public UserResponse create(CreateUserRequest request) {
+    public UserDto create(CreateUserRequest request) {
         validateCreateRequest(request);
         validateUniqueUsername(request.username());
         validateUniqueEmail(request.email());
@@ -50,11 +52,11 @@ public class UserService {
         user.assignStatus(userStatus);
 
         User savedUser = userRepository.save(user);
-        return toResponse(savedUser);
+        return toDto(savedUser);
     }
 
     @Transactional
-    public UserResponse create(CreateUserRequest request, MultipartFile profile) {
+    public UserDto create(CreateUserRequest request, MultipartFile profile) {
         CreateUserRequest mergedRequest = new CreateUserRequest(
                 request.username(),
                 request.email(),
@@ -64,26 +66,20 @@ public class UserService {
         return create(mergedRequest);
     }
 
-    public UserResponse find(UUID id) {
+    public UserDto find(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-        return toResponse(user);
+        return toDto(user);
     }
 
-    public List<UserResponse> findAll() {
+    public List<UserDto> findAll() {
         return userRepository.findAll().stream()
-                .map(this::toResponse)
-                .toList();
-    }
-
-    public List<UserDto> findAllUserDtos() {
-        return findAll().stream()
-                .map(this::toUserDto)
+                .map(this::toDto)
                 .toList();
     }
 
     @Transactional
-    public UserResponse update(UpdateUserRequest request) {
+    public UserDto update(UpdateUserRequest request) {
         if (request == null || request.userId() == null) {
             throw new DiscodeitException(ErrorCode.USER_ID_REQUIRED);
         }
@@ -99,11 +95,11 @@ public class UserService {
         user.update(updatedUsername, updatedEmail, updatedPassword);
         replaceProfileIfPresent(user, request.replacementProfile());
 
-        return toResponse(user);
+        return toDto(user);
     }
 
     @Transactional
-    public UserResponse update(UUID userId, UpdateUserRequest request, MultipartFile profile) {
+    public UserDto update(UUID userId, UpdateUserRequest request, MultipartFile profile) {
         UpdateUserRequest mergedRequest = new UpdateUserRequest(
                 userId,
                 request.username(),
@@ -115,7 +111,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse update(UUID userId, UserUpdateApiRequest request, MultipartFile profile) {
+    public UserDto update(UUID userId, UserUpdateApiRequest request, MultipartFile profile) {
         UpdateUserRequest convertedRequest = new UpdateUserRequest(
                 userId,
                 request.newUsername(),
@@ -153,12 +149,14 @@ public class UserService {
         if (profile == null) {
             return null;
         }
-        // User의 cascade로 함께 저장되므로 별도로 binaryContentRepository.save() 불필요
-        return new BinaryContent(
+        BinaryContent binaryContent = new BinaryContent(
                 profile.data(),
                 profile.fileName(),
                 profile.contentType()
         );
+        // User cascade 저장 전에 bytes를 스토리지에 저장 (ID는 생성자에서 이미 할당됨)
+        binaryContentStorage.put(binaryContent.getId(), profile.data());
+        return binaryContent;
     }
 
     /**
@@ -236,45 +234,8 @@ public class UserService {
         return request.password();
     }
 
-    private UserResponse toResponse(User user) {
-        // 지연 로딩: status/profile 접근 시점에 프록시 초기화
-        boolean online = user.getStatus() != null && user.getStatus().isOnline();
-        BinaryContentResponse profile = user.getProfile() != null
-                ? toBinaryContentResponse(user.getProfile())
-                : null;
-        return UserResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .profile(profile)
-                .online(online)
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
-    }
-
-    BinaryContentResponse toBinaryContentResponse(BinaryContent binaryContent) {
-        return BinaryContentResponse.builder()
-                .id(binaryContent.getId())
-                .createdAt(binaryContent.getCreatedAt())
-                .fileName(binaryContent.getFileName())
-                .size(binaryContent.getSize())
-                .contentType(binaryContent.getContentType())
-                .bytes(binaryContent.getBytes())
-                .build();
-    }
-
-    private UserDto toUserDto(UserResponse userResponse) {
-        UUID profileId = userResponse.profile() != null ? userResponse.profile().id() : null;
-        return new UserDto(
-                userResponse.id(),
-                userResponse.createdAt(),
-                userResponse.updatedAt(),
-                userResponse.username(),
-                userResponse.email(),
-                profileId,
-                userResponse.online()
-        );
+    private UserDto toDto(User user) {
+        return userMapper.toDto(user);
     }
 
     private boolean isBlank(String value) {

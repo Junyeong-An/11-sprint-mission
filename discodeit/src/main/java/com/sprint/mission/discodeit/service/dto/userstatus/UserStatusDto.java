@@ -4,13 +4,13 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Builder;
 
+/**
+ * 유저 온라인 상태 응답 DTO
+ */
 @Builder
-public record UserStatusResponse(
+public record UserStatusDto(
         UUID id,
         UUID userId,
-        Instant lastActiveAt,
-        boolean online,
-        Instant createdAt,
-        Instant updatedAt
+        Instant lastActiveAt
 ) {
 }

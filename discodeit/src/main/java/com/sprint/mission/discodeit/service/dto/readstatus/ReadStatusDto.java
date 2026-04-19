@@ -4,13 +4,14 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Builder;
 
+/**
+ * 읽음 상태 응답 DTO
+ */
 @Builder
-public record ReadStatusResponse(
+public record ReadStatusDto(
         UUID id,
         UUID userId,
         UUID channelId,
-        Instant lastReadAt,
-        Instant createdAt,
-        Instant updatedAt
+        Instant lastReadAt
 ) {
 }

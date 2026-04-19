@@ -4,11 +4,11 @@ import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.mapper.UserMapper;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.repository.UserStatusRepository;
-import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
+import com.sprint.mission.discodeit.service.dto.user.UserDto;
 import com.sprint.mission.discodeit.service.dto.user.UserLoginRequest;
-import com.sprint.mission.discodeit.service.dto.user.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +20,10 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserStatusRepository userStatusRepository;
-    private final UserService userService;
+    private final UserMapper userMapper;
 
     @Transactional
-    public UserResponse login(UserLoginRequest request) {
+    public UserDto login(UserLoginRequest request) {
         validateLoginRequest(request);
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.LOGIN_USER_NOT_FOUND));
@@ -36,19 +36,7 @@ public class AuthService {
                 .orElseGet(() -> userStatusRepository.save(new UserStatus(user)));
         userStatus.updateLastActiveAt();
 
-        BinaryContentResponse profile = user.getProfile() != null
-                ? userService.toBinaryContentResponse(user.getProfile())
-                : null;
-
-        return UserResponse.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .profile(profile)
-                .online(userStatus.isOnline())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
+        return userMapper.toDto(user);
     }
 
     private void validateLoginRequest(UserLoginRequest request) {
