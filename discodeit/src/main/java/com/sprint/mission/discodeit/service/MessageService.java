@@ -11,7 +11,7 @@ import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.storage.BinaryContentStorage;
-import com.sprint.mission.discodeit.service.dto.PageResponse;
+import com.sprint.mission.discodeit.dto.response.PageResponse;
 import com.sprint.mission.discodeit.service.dto.message.CreateMessageRequest;
 import com.sprint.mission.discodeit.service.dto.message.MessageAttachmentRequest;
 import com.sprint.mission.discodeit.service.dto.message.MessageDto;
@@ -19,13 +19,12 @@ import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -76,25 +75,14 @@ public class MessageService {
         }
         getChannel(channelId);
 
-        List<Message> allMessages = messageRepository.findAllByChannelId(channelId);
-        List<Message> sorted = applySorting(allMessages, pageable.getSort());
-
-        long totalElements = sorted.size();
-        int pageNumber = pageable.getPageNumber();
-        int pageSize = pageable.getPageSize();
-        int start = pageNumber * pageSize;
-        int end = (int) Math.min((long) start + pageSize, totalElements);
-
-        List<MessageDto> pageContent = start >= totalElements
-                ? List.of()
-                : sorted.subList(start, end).stream().map(this::toDto).toList();
+        Page<Message> page = messageRepository.findAllByChannelId(channelId, pageable);
 
         return PageResponse.<MessageDto>builder()
-                .content(pageContent)
-                .number(pageNumber)
-                .size(pageSize)
-                .hasNext(end < totalElements)
-                .totalElements(totalElements)
+                .content(page.getContent().stream().map(this::toDto).toList())
+                .number(page.getNumber())
+                .size(page.getSize())
+                .hasNext(page.hasNext())
+                .totalElements(null)
                 .build();
     }
 
@@ -112,23 +100,6 @@ public class MessageService {
         Message message = getMessage(id);
         // Message의 attachments는 orphanRemoval 설정에 의해 함께 삭제됨
         messageRepository.delete(message);
-    }
-
-    private List<Message> applySorting(List<Message> messages, Sort sort) {
-        if (sort.isUnsorted()) {
-            return messages.stream()
-                    .sorted(Comparator.comparing(Message::getCreatedAt).reversed())
-                    .toList();
-        }
-        Comparator<Message> comparator = Comparator.comparing(Message::getCreatedAt).reversed();
-        for (Sort.Order order : sort) {
-            if ("createdAt".equals(order.getProperty())) {
-                comparator = order.isAscending()
-                        ? Comparator.comparing(Message::getCreatedAt)
-                        : Comparator.comparing(Message::getCreatedAt).reversed();
-            }
-        }
-        return messages.stream().sorted(comparator).toList();
     }
 
     private Message getMessage(UUID id) {

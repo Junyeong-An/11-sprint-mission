@@ -1,4 +1,4 @@
-package com.sprint.mission.discodeit.service.dto;
+package com.sprint.mission.discodeit.dto.response;
 
 import java.util.List;
 import lombok.Builder;
@@ -9,6 +9,6 @@ public record PageResponse<T>(
         int number,
         int size,
         boolean hasNext,
-        long totalElements
+        Long totalElements
 ) {
 }

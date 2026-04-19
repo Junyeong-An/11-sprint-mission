@@ -21,8 +21,9 @@ logging:
 
 discodeit:
   storage:
+    type: local
     local:
-      root-dir: ./.discodeit/storage
+      root-path: ./.discodeit/storage
 
 springdoc:
   api-docs:
