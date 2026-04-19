@@ -7,66 +7,53 @@ import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
-import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
-import com.sprint.mission.discodeit.repository.UserStatusRepository;
 import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
 import com.sprint.mission.discodeit.service.dto.user.CreateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UpdateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserProfileRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserService {
+
     private final UserRepository userRepository;
-    private final BinaryContentRepository binaryContentRepository;
-    private final UserStatusRepository userStatusRepository;
 
-    public UserResponse find(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-        return toResponse(user);
-    }
-
-    public void delete(UUID id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-        if (user.getProfile() != null) {
-            binaryContentRepository.deleteById(user.getProfile().getId());
-        }
-        userStatusRepository.deleteByUserId(id);
-        userRepository.deleteById(id);
-    }
-
+    @Transactional
     public UserResponse create(CreateUserRequest request) {
         validateCreateRequest(request);
         validateUniqueUsername(request.username());
         validateUniqueEmail(request.email());
 
-        BinaryContent profile = saveProfileIfPresent(request.profile());
+        // 프로필 BinaryContent는 User의 cascade 설정으로 함께 저장됨
+        BinaryContent profile = toBinaryContentFromProfile(request.profile());
         User user = User.builder()
                 .username(request.username())
                 .email(request.email())
                 .password(request.password())
                 .profile(profile)
                 .build();
+
+        // UserStatus는 User의 cascade 설정으로 함께 저장됨
+        UserStatus userStatus = new UserStatus(user);
+        user.assignStatus(userStatus);
+
         User savedUser = userRepository.save(user);
-
-        UserStatus userStatus = new UserStatus(savedUser);
-        userStatusRepository.save(userStatus);
-        savedUser.assignStatus(userStatus);
-        userRepository.save(savedUser);
-
         return toResponse(savedUser);
     }
 
+    @Transactional
     public UserResponse create(CreateUserRequest request, MultipartFile profile) {
         CreateUserRequest mergedRequest = new CreateUserRequest(
                 request.username(),
@@ -75,6 +62,12 @@ public class UserService {
                 toUserProfileRequest(profile)
         );
         return create(mergedRequest);
+    }
+
+    public UserResponse find(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+        return toResponse(user);
     }
 
     public List<UserResponse> findAll() {
@@ -89,6 +82,7 @@ public class UserService {
                 .toList();
     }
 
+    @Transactional
     public UserResponse update(UpdateUserRequest request) {
         if (request == null || request.userId() == null) {
             throw new DiscodeitException(ErrorCode.USER_ID_REQUIRED);
@@ -101,12 +95,14 @@ public class UserService {
         String updatedEmail = resolveUpdatedEmail(user, request);
         String updatedPassword = resolveUpdatedPassword(user, request);
 
+        // 변경 감지(dirty checking) - 별도 save 호출 불필요
         user.update(updatedUsername, updatedEmail, updatedPassword);
         replaceProfileIfPresent(user, request.replacementProfile());
-        User savedUser = userRepository.save(user);
-        return toResponse(savedUser);
+
+        return toResponse(user);
     }
 
+    @Transactional
     public UserResponse update(UUID userId, UpdateUserRequest request, MultipartFile profile) {
         UpdateUserRequest mergedRequest = new UpdateUserRequest(
                 userId,
@@ -118,6 +114,7 @@ public class UserService {
         return update(mergedRequest);
     }
 
+    @Transactional
     public UserResponse update(UUID userId, UserUpdateApiRequest request, MultipartFile profile) {
         UpdateUserRequest convertedRequest = new UpdateUserRequest(
                 userId,
@@ -127,6 +124,14 @@ public class UserService {
                 null
         );
         return update(userId, convertedRequest, profile);
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+        // User의 cascade 설정으로 profile, userStatus가 함께 삭제됨
+        userRepository.delete(user);
     }
 
     private void validateCreateRequest(CreateUserRequest request) {
@@ -144,26 +149,27 @@ public class UserService {
         }
     }
 
-    private BinaryContent saveProfileIfPresent(UserProfileRequest profile) {
+    private BinaryContent toBinaryContentFromProfile(UserProfileRequest profile) {
         if (profile == null) {
             return null;
         }
-        BinaryContent binaryContent = new BinaryContent(
+        // User의 cascade로 함께 저장되므로 별도로 binaryContentRepository.save() 불필요
+        return new BinaryContent(
                 profile.data(),
                 profile.fileName(),
                 profile.contentType()
         );
-        return binaryContentRepository.save(binaryContent);
     }
 
+    /**
+     * 프로필 교체 로직.
+     * orphanRemoval = true 설정으로 이전 profile은 참조가 끊기는 순간 자동 삭제된다.
+     */
     private void replaceProfileIfPresent(User user, UserProfileRequest profile) {
         if (profile == null) {
             return;
         }
-        if (user.getProfile() != null) {
-            binaryContentRepository.deleteById(user.getProfile().getId());
-        }
-        BinaryContent newProfile = saveProfileIfPresent(profile);
+        BinaryContent newProfile = toBinaryContentFromProfile(profile);
         user.replaceProfile(newProfile);
     }
 
@@ -171,7 +177,7 @@ public class UserService {
         if (isBlank(username)) {
             throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
         }
-        userRepository.findByUserName(username)
+        userRepository.findByUsername(username)
                 .filter(foundUser -> !foundUser.getId().equals(userId))
                 .ifPresent(user -> {
                     throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
@@ -182,17 +188,16 @@ public class UserService {
         if (isBlank(username)) {
             throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
         }
-        userRepository.findByUserName(username)
-                .ifPresent(user -> {
-                    throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
-                });
+        if (userRepository.existsByUsername(username)) {
+            throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
+        }
     }
 
     private void validateUniqueEmail(String email) {
         if (isBlank(email)) {
             throw new DiscodeitException(ErrorCode.EMAIL_REQUIRED);
         }
-        if (userRepository.findByEmail(email).isPresent()) {
+        if (userRepository.existsByEmail(email)) {
             throw new DiscodeitException(ErrorCode.DUPLICATE_EMAIL);
         }
     }
@@ -232,6 +237,7 @@ public class UserService {
     }
 
     private UserResponse toResponse(User user) {
+        // 지연 로딩: status/profile 접근 시점에 프록시 초기화
         boolean online = user.getStatus() != null && user.getStatus().isOnline();
         BinaryContentResponse profile = user.getProfile() != null
                 ? toBinaryContentResponse(user.getProfile())

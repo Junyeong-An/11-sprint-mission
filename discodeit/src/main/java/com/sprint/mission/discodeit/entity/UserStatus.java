@@ -9,11 +9,14 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.Duration;
 import java.time.Instant;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "user_statuses")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserStatus extends BaseUpdatableEntity {
 
     private static final Duration ONLINE_THRESHOLD = Duration.ofMinutes(5);
@@ -31,9 +34,6 @@ public class UserStatus extends BaseUpdatableEntity {
         this.lastActiveAt = Instant.now();
     }
 
-    protected UserStatus() {
-        // JPA 기본 생성자
-    }
 
     public void updateLastActiveAt() {
         this.lastActiveAt = Instant.now();

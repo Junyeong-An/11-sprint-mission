@@ -7,26 +7,29 @@ import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentDownloadResponse;
 import com.sprint.mission.discodeit.service.dto.binarycontent.BinaryContentResponse;
 import com.sprint.mission.discodeit.service.dto.binarycontent.CreateBinaryContentRequest;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BinaryContentService {
+
     private final BinaryContentRepository binaryContentRepository;
 
+    @Transactional
     public BinaryContentResponse create(CreateBinaryContentRequest request) {
         validateCreateRequest(request);
 
@@ -55,14 +58,8 @@ public class BinaryContentService {
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
-
-        Map<UUID, BinaryContent> binaryContentById = binaryContentRepository.findAll().stream()
-                .collect(Collectors.toMap(BinaryContent::getId, Function.identity()));
-
-        return ids.stream()
-                .distinct()
-                .map(binaryContentById::get)
-                .filter(Objects::nonNull)
+        // 쿼리 메소드로 IN 조회
+        return binaryContentRepository.findAllByIdIn(ids).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -93,13 +90,14 @@ public class BinaryContentService {
         );
     }
 
+    @Transactional
     public void delete(UUID id) {
         if (id == null) {
             throw new DiscodeitException(ErrorCode.BINARY_CONTENT_ID_REQUIRED);
         }
-        binaryContentRepository.findById(id)
+        BinaryContent binaryContent = binaryContentRepository.findById(id)
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.BINARY_CONTENT_NOT_FOUND));
-        binaryContentRepository.deleteById(id);
+        binaryContentRepository.delete(binaryContent);
     }
 
     private BinaryContentResponse toResponse(BinaryContent binaryContent) {

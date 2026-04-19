@@ -6,7 +6,6 @@ import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
-import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
@@ -17,38 +16,45 @@ import com.sprint.mission.discodeit.service.dto.message.MessageAttachmentRequest
 import com.sprint.mission.discodeit.service.dto.message.MessageResponse;
 import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class MessageService {
+
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
-    private final BinaryContentRepository binaryContentRepository;
     private final UserService userService;
 
+    @Transactional
     public MessageResponse create(CreateMessageRequest request) {
         validateCreateRequest(request);
         User author = userRepository.findById(request.authorId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
         Channel channel = getChannel(request.channelId());
 
-        List<BinaryContent> attachments = saveAttachments(request.attachments());
+        // 첨부파일 엔티티 생성 - Message cascade를 통해 함께 저장됨
+        List<BinaryContent> attachments = buildAttachments(request.attachments());
         Message message = new Message(author, channel, request.content(), attachments);
 
         return toResponse(messageRepository.save(message));
     }
 
+    @Transactional
     public MessageResponse create(CreateMessageRequest request, List<MultipartFile> attachments) {
         CreateMessageRequest mergedRequest = new CreateMessageRequest(
                 request.authorId(),
@@ -91,6 +97,22 @@ public class MessageService {
                 .build();
     }
 
+    @Transactional
+    public MessageResponse update(UpdateMessageRequest request) {
+        validateUpdateRequest(request);
+        Message message = getMessage(request.messageId());
+        // 변경 감지(dirty checking)
+        message.update(request.content());
+        return toResponse(message);
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        Message message = getMessage(id);
+        // Message의 attachments는 orphanRemoval 설정에 의해 함께 삭제됨
+        messageRepository.delete(message);
+    }
+
     private List<Message> applySorting(List<Message> messages, Sort sort) {
         if (sort.isUnsorted()) {
             return messages.stream()
@@ -108,54 +130,41 @@ public class MessageService {
         return messages.stream().sorted(comparator).toList();
     }
 
-    public MessageResponse update(UpdateMessageRequest request) {
-        validateUpdateRequest(request);
-        Message message = getMessage(request.messageId());
-        message.update(request.content());
-        return toResponse(messageRepository.save(message));
-    }
-
-    public void delete(UUID id) {
-        Message message = getMessage(id);
-        message.getAttachments().stream()
-                .map(BinaryContent::getId)
-                .forEach(binaryContentRepository::deleteById);
-        messageRepository.deleteById(id);
-    }
-
     private Message getMessage(UUID id) {
         if (id == null) {
             throw new DiscodeitException(ErrorCode.MESSAGE_ID_REQUIRED);
         }
-        return messageRepository.findById(id);
+        return messageRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.MESSAGE_NOT_FOUND));
     }
 
     private Channel getChannel(UUID id) {
         if (id == null) {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
-        return channelRepository.findById(id);
+        return channelRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND));
     }
 
-    private List<BinaryContent> saveAttachments(List<MessageAttachmentRequest> attachments) {
+    private List<BinaryContent> buildAttachments(List<MessageAttachmentRequest> attachments) {
         if (attachments == null || attachments.isEmpty()) {
             return List.of();
         }
         return attachments.stream()
-                .map(this::saveAttachment)
+                .map(this::buildAttachment)
                 .toList();
     }
 
-    private BinaryContent saveAttachment(MessageAttachmentRequest attachmentRequest) {
+    private BinaryContent buildAttachment(MessageAttachmentRequest attachmentRequest) {
         if (attachmentRequest == null) {
             throw new DiscodeitException(ErrorCode.INVALID_REQUEST, "첨부파일 정보가 비어있어요.");
         }
-        BinaryContent binaryContent = new BinaryContent(
+        // Message cascade로 저장되므로 별도 save 불필요
+        return new BinaryContent(
                 attachmentRequest.data(),
                 attachmentRequest.fileName(),
                 attachmentRequest.contentType()
         );
-        return binaryContentRepository.save(binaryContent);
     }
 
     private List<MessageAttachmentRequest> toAttachmentRequests(List<MultipartFile> attachments) {
@@ -181,6 +190,7 @@ public class MessageService {
     }
 
     private MessageResponse toResponse(Message message) {
+        // 지연 로딩: author 프록시는 접근 시점에 초기화됨
         UserResponse author = userService.find(message.getAuthor().getId());
 
         List<BinaryContentResponse> attachments = message.getAttachments().stream()

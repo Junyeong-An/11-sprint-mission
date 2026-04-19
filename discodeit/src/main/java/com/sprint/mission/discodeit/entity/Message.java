@@ -1,6 +1,7 @@
 package com.sprint.mission.discodeit.entity;
 
 import com.sprint.mission.discodeit.entity.base.BaseUpdatableEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -11,11 +12,14 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "messages")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Message extends BaseUpdatableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -29,11 +33,11 @@ public class Message extends BaseUpdatableEntity {
     @Column(nullable = false)
     private String content;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinTable(
             name = "message_attachments",
             joinColumns = @JoinColumn(name = "message_id"),
-            inverseJoinColumns = @JoinColumn(name = "binary_content_id")
+            inverseJoinColumns = @JoinColumn(name = "attachment_id")
     )
     private List<BinaryContent> attachments = new ArrayList<>();
 
@@ -51,9 +55,6 @@ public class Message extends BaseUpdatableEntity {
         }
     }
 
-    protected Message() {
-        // JPA 기본 생성자
-    }
 
     public void update(String content) {
         this.content = content;

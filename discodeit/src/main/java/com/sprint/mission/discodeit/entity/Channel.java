@@ -6,11 +6,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "channels")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Channel extends BaseUpdatableEntity {
 
     @Column
@@ -30,9 +33,6 @@ public class Channel extends BaseUpdatableEntity {
         this.type = type;
     }
 
-    protected Channel() {
-        // JPA 기본 생성자
-    }
 
     public void update(String name, String description) {
         this.name = name;

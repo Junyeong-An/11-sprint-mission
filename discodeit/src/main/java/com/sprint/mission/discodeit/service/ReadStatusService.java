@@ -11,27 +11,31 @@ import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.service.dto.readstatus.CreateReadStatusRequest;
 import com.sprint.mission.discodeit.service.dto.readstatus.ReadStatusResponse;
 import com.sprint.mission.discodeit.service.dto.readstatus.UpdateReadStatusRequest;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ReadStatusService {
+
     private final ReadStatusRepository readStatusRepository;
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
 
+    @Transactional
     public ReadStatusResponse create(CreateReadStatusRequest request) {
         validateCreateRequest(request);
         User user = getUser(request.userId());
         Channel channel = getChannel(request.channelId());
 
-        boolean duplicated = readStatusRepository.findByUserId(request.userId()).stream()
-                .anyMatch(readStatus -> readStatus.getChannel().getId().equals(request.channelId()));
-        if (duplicated) {
+        if (readStatusRepository.existsByUserIdAndChannelId(request.userId(), request.channelId())) {
             throw new DiscodeitException(ErrorCode.DUPLICATE_READ_STATUS);
         }
 
@@ -39,6 +43,7 @@ public class ReadStatusService {
         return toResponse(readStatusRepository.save(readStatus));
     }
 
+    @Transactional
     public ReadStatusResponse createByChannel(UUID channelId, UUID userId) {
         return create(new CreateReadStatusRequest(userId, channelId));
     }
@@ -53,18 +58,21 @@ public class ReadStatusService {
         }
         getUser(userId);
 
-        return readStatusRepository.findByUserId(userId).stream()
+        return readStatusRepository.findAllByUserId(userId).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    @Transactional
     public ReadStatusResponse update(UpdateReadStatusRequest request) {
         validateUpdateRequest(request);
         ReadStatus readStatus = getReadStatus(request.readStatusId());
+        // 변경 감지로 자동 반영
         readStatus.updateLastReadAt(request.lastReadAt());
-        return toResponse(readStatusRepository.save(readStatus));
+        return toResponse(readStatus);
     }
 
+    @Transactional
     public ReadStatusResponse updateByChannel(UUID channelId, UUID readStatusId, Instant lastReadAt) {
         ReadStatus readStatus = getReadStatus(readStatusId);
         if (!readStatus.getChannel().getId().equals(channelId)) {
@@ -73,16 +81,18 @@ public class ReadStatusService {
         return update(new UpdateReadStatusRequest(readStatusId, lastReadAt));
     }
 
+    @Transactional
     public void delete(UUID id) {
-        getReadStatus(id);
-        readStatusRepository.deleteById(id);
+        ReadStatus readStatus = getReadStatus(id);
+        readStatusRepository.delete(readStatus);
     }
 
     private ReadStatus getReadStatus(UUID id) {
         if (id == null) {
             throw new DiscodeitException(ErrorCode.READ_STATUS_ID_REQUIRED);
         }
-        return readStatusRepository.findById(id);
+        return readStatusRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.READ_STATUS_NOT_FOUND));
     }
 
     private User getUser(UUID userId) {
@@ -94,7 +104,8 @@ public class ReadStatusService {
         if (channelId == null) {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
-        return channelRepository.findById(channelId);
+        return channelRepository.findById(channelId)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND));
     }
 
     private ReadStatusResponse toResponse(ReadStatus readStatus) {

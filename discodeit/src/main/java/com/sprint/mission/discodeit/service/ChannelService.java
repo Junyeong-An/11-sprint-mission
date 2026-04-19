@@ -7,7 +7,6 @@ import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
-import com.sprint.mission.discodeit.repository.BinaryContentRepository;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
@@ -17,23 +16,28 @@ import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequ
 import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
+
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ChannelService {
+
     private final ChannelRepository channelRepository;
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
     private final ReadStatusRepository readStatusRepository;
-    private final BinaryContentRepository binaryContentRepository;
     private final UserService userService;
 
+    @Transactional
     public ChannelResponse createPublicChannel(CreatePublicChannelRequest request) {
         validatePublicChannelRequest(request);
         Channel savedChannel = channelRepository.save(
@@ -42,17 +46,21 @@ public class ChannelService {
         return toResponse(savedChannel);
     }
 
+    @Transactional
     public ChannelResponse createPrivateChannel(CreatePrivateChannelRequest request) {
         validatePrivateChannelRequest(request);
 
         Channel savedChannel = channelRepository.save(Channel.privateChannel());
 
+        // 참여자별 ReadStatus 생성
         request.participantIds().stream()
                 .distinct()
                 .forEach(participantId -> {
                     User user = userRepository.findById(participantId)
                             .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
-                    readStatusRepository.save(new ReadStatus(user, savedChannel, savedChannel.getCreatedAt()));
+                    readStatusRepository.save(
+                            new ReadStatus(user, savedChannel, savedChannel.getCreatedAt())
+                    );
                 });
 
         return toResponse(savedChannel);
@@ -69,7 +77,7 @@ public class ChannelService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
 
-        List<UUID> visiblePrivateChannelIds = readStatusRepository.findByUserId(userId).stream()
+        List<UUID> visiblePrivateChannelIds = readStatusRepository.findAllByUserId(userId).stream()
                 .map(readStatus -> readStatus.getChannel().getId())
                 .distinct()
                 .toList();
@@ -80,6 +88,7 @@ public class ChannelService {
                 .toList();
     }
 
+    @Transactional
     public ChannelResponse update(UpdateChannelRequest request) {
         validateUpdateChannelRequest(request);
 
@@ -88,29 +97,33 @@ public class ChannelService {
             throw new DiscodeitException(ErrorCode.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED);
         }
 
+        // 변경 감지로 자동 반영
         channel.update(request.name(), request.description());
-        Channel savedChannel = channelRepository.save(channel);
-        return toResponse(savedChannel);
+        return toResponse(channel);
     }
 
+    @Transactional
     public void delete(UUID id) {
-        getChannel(id);
+        Channel channel = getChannel(id);
 
-        messageRepository.findAllByChannelId(id).stream()
-                .flatMap(message -> message.getAttachments().stream())
-                .map(attachment -> attachment.getId())
-                .forEach(binaryContentRepository::deleteById);
+        // 채널 연관 메시지 삭제: Message 엔티티의 attachments는 CascadeType.ALL + orphanRemoval이므로
+        // 엔티티를 로드하여 삭제하면 첨부파일까지 자동 삭제됨
+        List<Message> messages = messageRepository.findAllByChannelId(id);
+        messageRepository.deleteAll(messages);
 
-        messageRepository.deleteByChannelId(id);
-        readStatusRepository.deleteByChannelId(id);
-        channelRepository.deleteById(id);
+        // 읽음상태도 삭제
+        readStatusRepository.deleteAllByChannelId(id);
+
+        // 채널 삭제
+        channelRepository.delete(channel);
     }
 
     private Channel getChannel(UUID id) {
         if (id == null) {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
-        return channelRepository.findById(id);
+        return channelRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND));
     }
 
     private ChannelResponse toResponse(Channel channel) {
@@ -120,7 +133,7 @@ public class ChannelService {
                 .orElse(null);
 
         List<UserResponse> participants = channel.getType() == ChannelType.PRIVATE
-                ? readStatusRepository.findByChannelId(channel.getId()).stream()
+                ? readStatusRepository.findAllByChannelId(channel.getId()).stream()
                 .map(readStatus -> readStatus.getUser().getId())
                 .distinct()
                 .map(userService::find)

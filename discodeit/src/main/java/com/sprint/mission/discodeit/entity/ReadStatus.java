@@ -8,11 +8,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "read_statuses")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ReadStatus extends BaseUpdatableEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,9 +42,6 @@ public class ReadStatus extends BaseUpdatableEntity {
         this.lastReadAt = lastReadAt;
     }
 
-    protected ReadStatus() {
-        // JPA 기본 생성자
-    }
 
     public void markAsReadNow() {
         this.lastReadAt = Instant.now();

@@ -11,26 +11,30 @@ import com.sprint.mission.discodeit.service.dto.user.UserLoginRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AuthService {
+
     private final UserRepository userRepository;
     private final UserStatusRepository userStatusRepository;
     private final UserService userService;
 
+    @Transactional
     public UserResponse login(UserLoginRequest request) {
         validateLoginRequest(request);
-        User user = userRepository.findByUserName(request.username()).orElseThrow(
-                () -> new DiscodeitException(ErrorCode.LOGIN_USER_NOT_FOUND));
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.LOGIN_USER_NOT_FOUND));
         if (!user.getPassword().equals(request.password())) {
             throw new DiscodeitException(ErrorCode.INVALID_CREDENTIALS);
         }
 
+        // 기존 UserStatus가 있으면 변경 감지로 업데이트, 없으면 새로 생성
         UserStatus userStatus = userStatusRepository.findByUserId(user.getId())
-                .orElseGet(() -> new UserStatus(user));
+                .orElseGet(() -> userStatusRepository.save(new UserStatus(user)));
         userStatus.updateLastActiveAt();
-        userStatusRepository.save(userStatus);
 
         BinaryContentResponse profile = user.getProfile() != null
                 ? userService.toBinaryContentResponse(user.getProfile())

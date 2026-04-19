@@ -10,18 +10,24 @@ import com.sprint.mission.discodeit.service.dto.userstatus.CreateUserStatusReque
 import com.sprint.mission.discodeit.service.dto.userstatus.UpdateUserStatusByUserIdRequest;
 import com.sprint.mission.discodeit.service.dto.userstatus.UpdateUserStatusRequest;
 import com.sprint.mission.discodeit.service.dto.userstatus.UserStatusResponse;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserStatusService {
+
     private final UserStatusRepository userStatusRepository;
     private final UserRepository userRepository;
 
+    @Transactional
     public UserStatusResponse create(CreateUserStatusRequest request) {
         validateCreateRequest(request);
         User user = userRepository.findById(request.userId())
@@ -45,13 +51,16 @@ public class UserStatusService {
                 .toList();
     }
 
+    @Transactional
     public UserStatusResponse update(UpdateUserStatusRequest request) {
         validateUpdateRequest(request);
         UserStatus userStatus = getUserStatus(request.userStatusId());
+        // 변경 감지로 반영
         userStatus.updateLastActiveAt(request.lastConnectedAt());
-        return toResponse(userStatusRepository.save(userStatus));
+        return toResponse(userStatus);
     }
 
+    @Transactional
     public UserStatusResponse updateByUserId(UpdateUserStatusByUserIdRequest request) {
         validateUpdateByUserIdRequest(request);
         userRepository.findById(request.userId())
@@ -59,25 +68,29 @@ public class UserStatusService {
 
         UserStatus userStatus = userStatusRepository.findByUserId(request.userId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_STATUS_NOT_FOUND));
+        // 변경 감지로 반영
         userStatus.updateLastActiveAt(request.lastConnectedAt());
-        return toResponse(userStatusRepository.save(userStatus));
+        return toResponse(userStatus);
     }
 
+    @Transactional
     public UserStatusResponse updateByUserId(UUID userId, Instant lastActiveAt) {
         Instant resolved = lastActiveAt != null ? lastActiveAt : Instant.now();
         return updateByUserId(new UpdateUserStatusByUserIdRequest(userId, resolved));
     }
 
+    @Transactional
     public void delete(UUID id) {
-        getUserStatus(id);
-        userStatusRepository.deleteById(id);
+        UserStatus userStatus = getUserStatus(id);
+        userStatusRepository.delete(userStatus);
     }
 
     private UserStatus getUserStatus(UUID id) {
         if (id == null) {
             throw new DiscodeitException(ErrorCode.USER_STATUS_ID_REQUIRED);
         }
-        return userStatusRepository.findById(id);
+        return userStatusRepository.findById(id)
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_STATUS_NOT_FOUND));
     }
 
     private UserStatusResponse toResponse(UserStatus userStatus) {
