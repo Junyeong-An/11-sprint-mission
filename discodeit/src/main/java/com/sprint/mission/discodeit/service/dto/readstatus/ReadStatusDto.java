@@ -4,9 +4,6 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Builder;
 
-/**
- * 읽음 상태 응답 DTO
- */
 @Builder
 public record ReadStatusDto(
         UUID id,

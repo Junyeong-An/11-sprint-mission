@@ -24,11 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChannelController {
     private final ChannelService channelService;
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public ChannelDto find(@PathVariable UUID id) {
-        return channelService.find(id);
-    }
-
     @RequestMapping(method = RequestMethod.GET)
     public List<ChannelDto> findAllByUserId(@RequestParam UUID userId) {
         return channelService.findAllByUserId(userId);

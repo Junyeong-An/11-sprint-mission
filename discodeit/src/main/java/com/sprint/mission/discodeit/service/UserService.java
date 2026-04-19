@@ -91,7 +91,6 @@ public class UserService {
         String updatedEmail = resolveUpdatedEmail(user, request);
         String updatedPassword = resolveUpdatedPassword(user, request);
 
-        // 변경 감지(dirty checking) - 별도 save 호출 불필요
         user.update(updatedUsername, updatedEmail, updatedPassword);
         replaceProfileIfPresent(user, request.replacementProfile());
 
@@ -159,10 +158,6 @@ public class UserService {
         return binaryContent;
     }
 
-    /**
-     * 프로필 교체 로직.
-     * orphanRemoval = true 설정으로 이전 profile은 참조가 끊기는 순간 자동 삭제된다.
-     */
     private void replaceProfileIfPresent(User user, UserProfileRequest profile) {
         if (profile == null) {
             return;

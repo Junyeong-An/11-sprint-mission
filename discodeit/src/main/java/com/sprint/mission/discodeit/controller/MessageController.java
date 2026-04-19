@@ -6,11 +6,9 @@ import com.sprint.mission.discodeit.dto.response.PageResponse;
 import com.sprint.mission.discodeit.service.dto.message.CreateMessageRequest;
 import com.sprint.mission.discodeit.service.dto.message.MessageDto;
 import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -28,19 +26,16 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 @RequestMapping("/api/messages")
 public class MessageController {
-    private final MessageService messageService;
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public MessageDto find(@PathVariable UUID id) {
-        return messageService.find(id);
-    }
+    private final MessageService messageService;
 
     @RequestMapping(method = RequestMethod.GET)
     public PageResponse<MessageDto> findAllByChannelId(
             @RequestParam UUID channelId,
-            @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @RequestParam(required = false) Instant cursor,
+            @RequestParam(defaultValue = "50") int size
     ) {
-        return messageService.findAllByChannelId(channelId, pageable);
+        return messageService.findAllByChannelId(channelId, cursor, size);
     }
 
     @ResponseStatus(HttpStatus.CREATED)

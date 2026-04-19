@@ -50,7 +50,6 @@ public class ChannelService {
 
         Channel savedChannel = channelRepository.save(Channel.privateChannel());
 
-        // 참여자별 ReadStatus 생성
         request.participantIds().stream()
                 .distinct()
                 .forEach(participantId -> {
@@ -95,7 +94,6 @@ public class ChannelService {
             throw new DiscodeitException(ErrorCode.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED);
         }
 
-        // 변경 감지로 자동 반영
         channel.update(request.name(), request.description());
         return toDto(channel);
     }
@@ -109,10 +107,7 @@ public class ChannelService {
         List<Message> messages = messageRepository.findAllByChannelId(id);
         messageRepository.deleteAll(messages);
 
-        // 읽음상태도 삭제
         readStatusRepository.deleteAllByChannelId(id);
-
-        // 채널 삭제
         channelRepository.delete(channel);
     }
 

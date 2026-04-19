@@ -57,7 +57,6 @@ public class UserStatusService {
     public UserStatusDto update(UpdateUserStatusRequest request) {
         validateUpdateRequest(request);
         UserStatus userStatus = getUserStatus(request.userStatusId());
-        // 변경 감지로 반영
         userStatus.updateLastActiveAt(request.lastConnectedAt());
         return toDto(userStatus);
     }
@@ -70,7 +69,6 @@ public class UserStatusService {
 
         UserStatus userStatus = userStatusRepository.findByUserId(request.userId())
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_STATUS_NOT_FOUND));
-        // 변경 감지로 반영
         userStatus.updateLastActiveAt(request.lastConnectedAt());
         return toDto(userStatus);
     }

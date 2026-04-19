@@ -2,45 +2,46 @@ package com.sprint.mission.discodeit.mapper;
 
 import com.sprint.mission.discodeit.entity.Channel;
 import com.sprint.mission.discodeit.entity.ChannelType;
-import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.ReadStatusRepository;
 import com.sprint.mission.discodeit.service.dto.channel.ChannelDto;
 import com.sprint.mission.discodeit.service.dto.user.UserDto;
-import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.mapstruct.AfterMapping;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
+import org.springframework.beans.factory.annotation.Autowired;
 
-@Component
-@RequiredArgsConstructor
-public class ChannelMapper {
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = UserMapper.class)
+public abstract class ChannelMapper {
 
-    private final MessageRepository messageRepository;
-    private final ReadStatusRepository readStatusRepository;
-    private final UserMapper userMapper;
+    @Autowired
+    protected MessageRepository messageRepository;
 
-    public ChannelDto toDto(Channel channel) {
-        Instant lastMessageAt = messageRepository.findAllByChannelId(channel.getId()).stream()
-                .map(Message::getCreatedAt)
-                .max(Comparator.naturalOrder())
-                .orElse(null);
+    @Autowired
+    protected ReadStatusRepository readStatusRepository;
 
-        List<UserDto> participants = channel.getType() == ChannelType.PRIVATE
-                ? readStatusRepository.findAllByChannelId(channel.getId()).stream()
-                .map(readStatus -> userMapper.toDto(readStatus.getUser()))
-                .distinct()
-                .toList()
-                : null;
+    @Autowired
+    protected UserMapper userMapper;
 
-        return ChannelDto.builder()
-                .id(channel.getId())
-                .type(channel.getType())
-                .name(channel.getName())
-                .description(channel.getDescription())
-                .participants(participants)
-                .lastMessageAt(lastMessageAt)
-                .build();
+    @Mapping(target = "lastMessageAt", ignore = true)
+    @Mapping(target = "participants", ignore = true)
+    public abstract ChannelDto toDto(Channel channel);
+
+    @AfterMapping
+    protected void enrichChannelDto(Channel channel, @MappingTarget ChannelDto.ChannelDtoBuilder builder) {
+        builder.lastMessageAt(
+                messageRepository.findLatestCreatedAtByChannelId(channel.getId()).orElse(null)
+        );
+        if (channel.getType() == ChannelType.PRIVATE) {
+            List<UserDto> participants = readStatusRepository.findAllByChannelId(channel.getId())
+                    .stream()
+                    .map(rs -> userMapper.toDto(rs.getUser()))
+                    .distinct()
+                    .toList();
+            builder.participants(participants);
+        }
     }
 }

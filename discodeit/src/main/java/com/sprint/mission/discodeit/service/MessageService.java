@@ -24,7 +24,8 @@ import java.util.List;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
+import java.time.Instant;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,16 +72,19 @@ public class MessageService {
         return toDto(getMessage(id));
     }
 
-    public PageResponse<MessageDto> findAllByChannelId(UUID channelId, Pageable pageable) {
+    public PageResponse<MessageDto> findAllByChannelId(UUID channelId, Instant cursor, int size) {
         if (channelId == null) {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
         getChannel(channelId);
 
-        Slice<MessageDto> slice = messageRepository.findAllByChannelId(channelId, pageable)
-                .map(this::toDto);
+        PageRequest pageRequest = PageRequest.of(0, size);
+        Slice<MessageDto> slice = (cursor == null
+                ? messageRepository.findAllByChannelIdOrderByCreatedAtDesc(channelId, pageRequest)
+                : messageRepository.findAllByChannelIdAndCreatedAtBeforeOrderByCreatedAtDesc(channelId, cursor, pageRequest)
+        ).map(this::toDto);
 
-        return pageResponseMapper.fromSlice(slice);
+        return pageResponseMapper.fromSlice(slice, dto -> dto.createdAt());
     }
 
     @Transactional

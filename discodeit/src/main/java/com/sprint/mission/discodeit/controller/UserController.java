@@ -28,11 +28,6 @@ public class UserController {
     private final UserService userService;
     private final UserStatusService userStatusService;
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public UserDto find(@PathVariable UUID id) {
-        return userService.find(id);
-    }
-
     @RequestMapping(method = RequestMethod.GET)
     public List<UserDto> findAll() {
         return userService.findAll();

@@ -41,13 +41,13 @@ public class ReadStatusService {
             throw new DiscodeitException(ErrorCode.DUPLICATE_READ_STATUS);
         }
 
-        ReadStatus readStatus = new ReadStatus(user, channel);
+        ReadStatus readStatus = new ReadStatus(user, channel, request.lastReadAt());
         return toDto(readStatusRepository.save(readStatus));
     }
 
     @Transactional
     public ReadStatusDto createByChannel(UUID channelId, UUID userId) {
-        return create(new CreateReadStatusRequest(userId, channelId));
+        return create(new CreateReadStatusRequest(userId, channelId, null));
     }
 
     public ReadStatusDto find(UUID id) {
@@ -69,7 +69,6 @@ public class ReadStatusService {
     public ReadStatusDto update(UpdateReadStatusRequest request) {
         validateUpdateRequest(request);
         ReadStatus readStatus = getReadStatus(request.readStatusId());
-        // 변경 감지로 자동 반영
         readStatus.updateLastReadAt(request.lastReadAt());
         return toDto(readStatus);
     }
