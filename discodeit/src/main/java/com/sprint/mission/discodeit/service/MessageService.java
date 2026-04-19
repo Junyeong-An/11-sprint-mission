@@ -7,6 +7,7 @@ import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
 import com.sprint.mission.discodeit.mapper.MessageMapper;
+import com.sprint.mission.discodeit.mapper.PageResponseMapper;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
 import com.sprint.mission.discodeit.repository.UserRepository;
@@ -23,8 +24,8 @@ import java.util.List;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,6 +39,7 @@ public class MessageService {
     private final UserRepository userRepository;
     private final ChannelRepository channelRepository;
     private final MessageMapper messageMapper;
+    private final PageResponseMapper pageResponseMapper;
     private final BinaryContentStorage binaryContentStorage;
 
     @Transactional
@@ -75,15 +77,10 @@ public class MessageService {
         }
         getChannel(channelId);
 
-        Page<Message> page = messageRepository.findAllByChannelId(channelId, pageable);
+        Slice<MessageDto> slice = messageRepository.findAllByChannelId(channelId, pageable)
+                .map(this::toDto);
 
-        return PageResponse.<MessageDto>builder()
-                .content(page.getContent().stream().map(this::toDto).toList())
-                .number(page.getNumber())
-                .size(page.getSize())
-                .hasNext(page.hasNext())
-                .totalElements(null)
-                .build();
+        return pageResponseMapper.fromSlice(slice);
     }
 
     @Transactional
