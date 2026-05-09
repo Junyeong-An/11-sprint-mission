@@ -19,10 +19,12 @@ import java.util.List;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -52,6 +54,7 @@ public class UserService {
         user.assignStatus(userStatus);
 
         User savedUser = userRepository.save(user);
+        log.info("사용자 생성 완료: id={}, username={}", savedUser.getId(), savedUser.getUsername());
         return toDto(savedUser);
     }
 
@@ -94,6 +97,7 @@ public class UserService {
         user.update(updatedUsername, updatedEmail, updatedPassword);
         replaceProfileIfPresent(user, request.replacementProfile());
 
+        log.info("사용자 수정 완료: id={}", user.getId());
         return toDto(user);
     }
 
@@ -111,14 +115,13 @@ public class UserService {
 
     @Transactional
     public UserDto update(UUID userId, UserUpdateApiRequest request, MultipartFile profile) {
-        UpdateUserRequest convertedRequest = new UpdateUserRequest(
+        return update(userId, new UpdateUserRequest(
                 userId,
                 request.newUsername(),
                 request.newEmail(),
                 request.newPassword(),
                 null
-        );
-        return update(userId, convertedRequest, profile);
+        ), profile);
     }
 
     @Transactional
@@ -127,6 +130,7 @@ public class UserService {
                 .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
         // User의 cascade 설정으로 profile, userStatus가 함께 삭제됨
         userRepository.delete(user);
+        log.info("사용자 삭제 완료: id={}", id);
     }
 
     private void validateCreateRequest(CreateUserRequest request) {

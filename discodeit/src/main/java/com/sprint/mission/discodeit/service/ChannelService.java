@@ -21,9 +21,11 @@ import java.util.List;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -41,6 +43,7 @@ public class ChannelService {
         Channel savedChannel = channelRepository.save(
                 Channel.publicChannel(request.name(), request.description())
         );
+        log.info("공개 채널 생성 완료: id={}, name={}", savedChannel.getId(), savedChannel.getName());
         return toDto(savedChannel);
     }
 
@@ -60,6 +63,7 @@ public class ChannelService {
                     );
                 });
 
+        log.info("비공개 채널 생성 완료: id={}, 참여자 수={}", savedChannel.getId(), request.participantIds().size());
         return toDto(savedChannel);
     }
 
@@ -95,6 +99,7 @@ public class ChannelService {
         }
 
         channel.update(request.name(), request.description());
+        log.info("채널 수정 완료: id={}", channel.getId());
         return toDto(channel);
     }
 
@@ -109,6 +114,7 @@ public class ChannelService {
 
         readStatusRepository.deleteAllByChannelId(id);
         channelRepository.delete(channel);
+        log.info("채널 삭제 완료: id={}", id);
     }
 
     private Channel getChannel(UUID id) {

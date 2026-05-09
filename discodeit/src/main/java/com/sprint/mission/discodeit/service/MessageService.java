@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import java.time.Instant;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
@@ -31,6 +32,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -54,7 +56,9 @@ public class MessageService {
         List<BinaryContent> attachments = buildAttachments(request.attachments());
         Message message = new Message(author, channel, request.content(), attachments);
 
-        return toDto(messageRepository.save(message));
+        Message saved = messageRepository.save(message);
+        log.info("메시지 생성 완료: id={}, channelId={}", saved.getId(), request.channelId());
+        return toDto(saved);
     }
 
     @Transactional
@@ -93,6 +97,7 @@ public class MessageService {
         Message message = getMessage(request.messageId());
         // 변경 감지(dirty checking)
         message.update(request.content());
+        log.info("메시지 수정 완료: id={}", message.getId());
         return toDto(message);
     }
 
@@ -101,6 +106,7 @@ public class MessageService {
         Message message = getMessage(id);
         // Message의 attachments는 orphanRemoval 설정에 의해 함께 삭제됨
         messageRepository.delete(message);
+        log.info("메시지 삭제 완료: id={}", id);
     }
 
     private Message getMessage(UUID id) {
