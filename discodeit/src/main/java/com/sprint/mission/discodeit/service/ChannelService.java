@@ -5,8 +5,11 @@ import com.sprint.mission.discodeit.entity.ChannelType;
 import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.entity.ReadStatus;
 import com.sprint.mission.discodeit.entity.User;
+import com.sprint.mission.discodeit.exception.ChannelNotFoundException;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.exception.PrivateChannelUpdateException;
+import com.sprint.mission.discodeit.exception.UserNotFoundException;
 import com.sprint.mission.discodeit.mapper.ChannelMapper;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
 import com.sprint.mission.discodeit.repository.MessageRepository;
@@ -18,7 +21,6 @@ import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelReque
 import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -58,7 +60,7 @@ public class ChannelService {
                 .distinct()
                 .forEach(participantId -> {
                     User user = userRepository.findById(participantId)
-                            .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+                            .orElseThrow(() -> new UserNotFoundException(participantId));
                     readStatusRepository.save(
                             new ReadStatus(user, savedChannel, savedChannel.getCreatedAt())
                     );
@@ -77,7 +79,7 @@ public class ChannelService {
             throw new DiscodeitException(ErrorCode.USER_ID_REQUIRED);
         }
         userRepository.findById(userId)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new UserNotFoundException(userId));
 
         List<UUID> visiblePrivateChannelIds = readStatusRepository.findAllByUserId(userId).stream()
                 .map(readStatus -> readStatus.getChannel().getId())
@@ -96,7 +98,7 @@ public class ChannelService {
 
         Channel channel = getChannel(request.channelId());
         if (channel.getType() == ChannelType.PRIVATE) {
-            throw new DiscodeitException(ErrorCode.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED, Map.of("channelId", request.channelId()));
+            throw new PrivateChannelUpdateException(request.channelId());
         }
 
         channel.update(request.name(), request.description());
@@ -123,7 +125,7 @@ public class ChannelService {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
         return channelRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND, Map.of("channelId", id)));
+                .orElseThrow(() -> new ChannelNotFoundException(id));
     }
 
     private ChannelDto toDto(Channel channel) {

@@ -6,6 +6,8 @@ import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.entity.UserStatus;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.exception.UserAlreadyExistsException;
+import com.sprint.mission.discodeit.exception.UserNotFoundException;
 import com.sprint.mission.discodeit.mapper.UserMapper;
 import com.sprint.mission.discodeit.repository.UserRepository;
 import com.sprint.mission.discodeit.service.dto.user.CreateUserRequest;
@@ -72,7 +74,7 @@ public class UserService {
 
     public UserDto find(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND, Map.of("userId", id)));
+                .orElseThrow(() -> new UserNotFoundException(id));
         return toDto(user);
     }
 
@@ -89,7 +91,7 @@ public class UserService {
         }
 
         User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND, Map.of("userId", request.userId())));
+                .orElseThrow(() -> new UserNotFoundException(request.userId()));
 
         String updatedUsername = resolveUpdatedUsername(user, request);
         String updatedEmail = resolveUpdatedEmail(user, request);
@@ -128,7 +130,7 @@ public class UserService {
     @Transactional
     public void delete(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND, Map.of("userId", id)));
+                .orElseThrow(() -> new UserNotFoundException(id));
         // User의 cascade 설정으로 profile, userStatus가 함께 삭제됨
         userRepository.delete(user);
         log.info("사용자 삭제 완료: id={}", id);
@@ -178,7 +180,7 @@ public class UserService {
         userRepository.findByUsername(username)
                 .filter(foundUser -> !foundUser.getId().equals(userId))
                 .ifPresent(user -> {
-                    throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
+                    throw new UserAlreadyExistsException(ErrorCode.DUPLICATE_USERNAME);
                 });
     }
 
@@ -187,7 +189,7 @@ public class UserService {
             throw new DiscodeitException(ErrorCode.USERNAME_REQUIRED);
         }
         if (userRepository.existsByUsername(username)) {
-            throw new DiscodeitException(ErrorCode.DUPLICATE_USERNAME);
+            throw new UserAlreadyExistsException(ErrorCode.DUPLICATE_USERNAME);
         }
     }
 
@@ -196,7 +198,7 @@ public class UserService {
             throw new DiscodeitException(ErrorCode.EMAIL_REQUIRED);
         }
         if (userRepository.existsByEmail(email)) {
-            throw new DiscodeitException(ErrorCode.DUPLICATE_EMAIL);
+            throw new UserAlreadyExistsException(ErrorCode.DUPLICATE_EMAIL);
         }
     }
 
@@ -207,7 +209,7 @@ public class UserService {
         userRepository.findByEmail(email)
                 .filter(foundUser -> !foundUser.getId().equals(userId))
                 .ifPresent(user -> {
-                    throw new DiscodeitException(ErrorCode.DUPLICATE_EMAIL);
+                    throw new UserAlreadyExistsException(ErrorCode.DUPLICATE_EMAIL);
                 });
     }
 

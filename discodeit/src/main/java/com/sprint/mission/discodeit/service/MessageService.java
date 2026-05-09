@@ -4,8 +4,10 @@ import com.sprint.mission.discodeit.entity.BinaryContent;
 import com.sprint.mission.discodeit.entity.Channel;
 import com.sprint.mission.discodeit.entity.Message;
 import com.sprint.mission.discodeit.entity.User;
+import com.sprint.mission.discodeit.exception.ChannelNotFoundException;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
 import com.sprint.mission.discodeit.exception.ErrorCode;
+import com.sprint.mission.discodeit.exception.UserNotFoundException;
 import com.sprint.mission.discodeit.mapper.MessageMapper;
 import com.sprint.mission.discodeit.mapper.PageResponseMapper;
 import com.sprint.mission.discodeit.repository.ChannelRepository;
@@ -50,7 +52,7 @@ public class MessageService {
     public MessageDto create(CreateMessageRequest request) {
         validateCreateRequest(request);
         User author = userRepository.findById(request.authorId())
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new UserNotFoundException(request.authorId()));
         Channel channel = getChannel(request.channelId());
 
         // 첨부파일 엔티티 생성 - Message cascade를 통해 함께 저장됨
@@ -123,7 +125,7 @@ public class MessageService {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
         return channelRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND));
+                .orElseThrow(() -> new ChannelNotFoundException(id));
     }
 
     private List<BinaryContent> buildAttachments(List<MessageAttachmentRequest> attachments) {
