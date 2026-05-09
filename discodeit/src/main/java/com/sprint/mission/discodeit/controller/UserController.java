@@ -7,6 +7,7 @@ import com.sprint.mission.discodeit.service.UserStatusService;
 import com.sprint.mission.discodeit.service.dto.user.CreateUserRequest;
 import com.sprint.mission.discodeit.service.dto.user.UserDto;
 import com.sprint.mission.discodeit.service.dto.userstatus.UserStatusDto;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,7 @@ public class UserController {
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public UserDto create(
-            @RequestPart("userCreateRequest") CreateUserRequest userCreateRequest,
+            @Valid @RequestPart("userCreateRequest") CreateUserRequest userCreateRequest,
             @RequestPart(value = "profile", required = false) MultipartFile profile
     ) {
         log.debug("사용자 생성 요청: username={}", userCreateRequest.username());
@@ -51,7 +52,7 @@ public class UserController {
     @PatchMapping(value = "/{userId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public UserDto update(
             @PathVariable UUID userId,
-            @RequestPart("userUpdateRequest") UserUpdateApiRequest userUpdateRequest,
+            @Valid @RequestPart("userUpdateRequest") UserUpdateApiRequest userUpdateRequest,
             @RequestPart(value = "profile", required = false) MultipartFile profile
     ) {
         log.debug("사용자 수정 요청: userId={}", userId);

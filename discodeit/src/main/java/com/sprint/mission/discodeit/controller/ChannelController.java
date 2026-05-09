@@ -6,6 +6,7 @@ import com.sprint.mission.discodeit.service.dto.channel.ChannelDto;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePrivateChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelRequest;
 import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -36,14 +37,14 @@ public class ChannelController {
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/public")
-    public ChannelDto createPublic(@RequestBody CreatePublicChannelRequest request) {
+    public ChannelDto createPublic(@Valid @RequestBody CreatePublicChannelRequest request) {
         log.debug("공개 채널 생성 요청: name={}", request.name());
         return channelService.createPublicChannel(request);
     }
 
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/private")
-    public ChannelDto createPrivate(@RequestBody CreatePrivateChannelRequest request) {
+    public ChannelDto createPrivate(@Valid @RequestBody CreatePrivateChannelRequest request) {
         log.debug("비공개 채널 생성 요청: participantIds={}", request.participantIds());
         return channelService.createPrivateChannel(request);
     }
@@ -51,7 +52,7 @@ public class ChannelController {
     @PatchMapping("/{channelId}")
     public ChannelDto update(
             @PathVariable UUID channelId,
-            @RequestBody ChannelUpdateApiRequest request
+            @Valid @RequestBody ChannelUpdateApiRequest request
     ) {
         log.debug("채널 수정 요청: channelId={}", channelId);
         return channelService.update(new UpdateChannelRequest(
