@@ -18,6 +18,7 @@ import com.sprint.mission.discodeit.service.dto.channel.CreatePublicChannelReque
 import com.sprint.mission.discodeit.service.dto.channel.UpdateChannelRequest;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -95,7 +96,7 @@ public class ChannelService {
 
         Channel channel = getChannel(request.channelId());
         if (channel.getType() == ChannelType.PRIVATE) {
-            throw new DiscodeitException(ErrorCode.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED);
+            throw new DiscodeitException(ErrorCode.PRIVATE_CHANNEL_UPDATE_NOT_ALLOWED, Map.of("channelId", request.channelId()));
         }
 
         channel.update(request.name(), request.description());
@@ -122,7 +123,7 @@ public class ChannelService {
             throw new DiscodeitException(ErrorCode.CHANNEL_ID_REQUIRED);
         }
         return channelRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND));
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.CHANNEL_NOT_FOUND, Map.of("channelId", id)));
     }
 
     private ChannelDto toDto(Channel channel) {

@@ -21,6 +21,7 @@ import com.sprint.mission.discodeit.service.dto.message.UpdateMessageRequest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -114,7 +115,7 @@ public class MessageService {
             throw new DiscodeitException(ErrorCode.MESSAGE_ID_REQUIRED);
         }
         return messageRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.MESSAGE_NOT_FOUND));
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.MESSAGE_NOT_FOUND, Map.of("messageId", id)));
     }
 
     private Channel getChannel(UUID id) {

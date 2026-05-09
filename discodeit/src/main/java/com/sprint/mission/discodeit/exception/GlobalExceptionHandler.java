@@ -1,6 +1,7 @@
 package com.sprint.mission.discodeit.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -8,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -19,7 +21,7 @@ public class GlobalExceptionHandler {
         HttpStatus status = exception.getErrorCode().getStatus();
         String code = exception.getErrorCode().getCode();
         String message = exception.getMessage();
-        ErrorResponse error = ErrorResponse.of(status, code, message, request.getRequestURI());
+        ErrorResponse error = ErrorResponse.of(status, code, message, exception.getDetails(), request.getRequestURI());
         return ResponseEntity.status(status).body(error);
     }
 
@@ -44,6 +46,7 @@ public class GlobalExceptionHandler {
             Exception exception,
             HttpServletRequest request
     ) {
+        log.error("처리되지 않은 예외 발생: {} {}", request.getMethod(), request.getRequestURI(), exception);
         return respond(
                 ErrorCode.INTERNAL_SERVER_ERROR.getStatus(),
                 ErrorCode.INTERNAL_SERVER_ERROR.getCode(),

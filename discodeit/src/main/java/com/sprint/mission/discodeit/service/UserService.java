@@ -16,6 +16,7 @@ import com.sprint.mission.discodeit.storage.BinaryContentStorage;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import lombok.RequiredArgsConstructor;
@@ -71,7 +72,7 @@ public class UserService {
 
     public UserDto find(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND, Map.of("userId", id)));
         return toDto(user);
     }
 
@@ -88,7 +89,7 @@ public class UserService {
         }
 
         User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND, Map.of("userId", request.userId())));
 
         String updatedUsername = resolveUpdatedUsername(user, request);
         String updatedEmail = resolveUpdatedEmail(user, request);
@@ -127,7 +128,7 @@ public class UserService {
     @Transactional
     public void delete(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new DiscodeitException(ErrorCode.USER_NOT_FOUND, Map.of("userId", id)));
         // User의 cascade 설정으로 profile, userStatus가 함께 삭제됨
         userRepository.delete(user);
         log.info("사용자 삭제 완료: id={}", id);
