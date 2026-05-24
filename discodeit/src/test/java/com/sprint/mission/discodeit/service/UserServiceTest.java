@@ -8,7 +8,8 @@ import static org.mockito.BDDMockito.then;
 
 import com.sprint.mission.discodeit.entity.User;
 import com.sprint.mission.discodeit.exception.DiscodeitException;
-import com.sprint.mission.discodeit.exception.UserAlreadyExistsException;
+import com.sprint.mission.discodeit.exception.DuplicateEmailException;
+import com.sprint.mission.discodeit.exception.DuplicateUsernameException;
 import com.sprint.mission.discodeit.exception.UserNotFoundException;
 import com.sprint.mission.discodeit.mapper.UserMapper;
 import com.sprint.mission.discodeit.repository.UserRepository;
@@ -85,7 +86,7 @@ class UserServiceTest {
         given(userRepository.existsByUsername("testuser")).willReturn(true);
 
         assertThatThrownBy(() -> userService.create(request))
-                .isInstanceOf(UserAlreadyExistsException.class);
+                .isInstanceOf(DuplicateUsernameException.class);
     }
 
     @Test
@@ -100,7 +101,7 @@ class UserServiceTest {
         given(userRepository.existsByEmail("test@example.com")).willReturn(true);
 
         assertThatThrownBy(() -> userService.create(request))
-                .isInstanceOf(UserAlreadyExistsException.class);
+                .isInstanceOf(DuplicateEmailException.class);
     }
 
     @Test
@@ -231,7 +232,7 @@ class UserServiceTest {
         given(userRepository.findByUsername("duplicate")).willReturn(Optional.of(other));
 
         assertThatThrownBy(() -> userService.update(request))
-                .isInstanceOf(UserAlreadyExistsException.class);
+                .isInstanceOf(DuplicateUsernameException.class);
     }
 
     @Test
