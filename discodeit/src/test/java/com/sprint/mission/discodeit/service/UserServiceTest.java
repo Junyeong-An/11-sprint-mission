@@ -57,7 +57,7 @@ class UserServiceTest {
     }
 
     @Test
-    void create_성공() {
+    void 유저_생성시_정상적으로_repository의_save를_호출한다() {
         CreateUserRequest request = CreateUserRequest.builder()
                 .username("testuser")
                 .email("test@example.com")
@@ -76,7 +76,7 @@ class UserServiceTest {
     }
 
     @Test
-    void create_중복된_username_예외() {
+    void 이미_존재하는_username으로_유저_생성시_DuplicateUsernameException이_발생한다() {
         CreateUserRequest request = CreateUserRequest.builder()
                 .username("testuser")
                 .email("test@example.com")
@@ -90,7 +90,7 @@ class UserServiceTest {
     }
 
     @Test
-    void create_중복된_email_예외() {
+    void 이미_존재하는_email로_유저_생성시_DuplicateEmailException이_발생한다() {
         CreateUserRequest request = CreateUserRequest.builder()
                 .username("testuser")
                 .email("test@example.com")
@@ -105,7 +105,7 @@ class UserServiceTest {
     }
 
     @Test
-    void update_성공() {
+    void 유저_정보_수정시_변경된_정보가_반환된다() {
         UUID userId = user.getId();
         UpdateUserRequest request = UpdateUserRequest.builder()
                 .userId(userId)
@@ -122,7 +122,7 @@ class UserServiceTest {
     }
 
     @Test
-    void update_사용자_없음_예외() {
+    void 존재하지_않는_유저_수정시_UserNotFoundException이_발생한다() {
         UUID userId = UUID.randomUUID();
         UpdateUserRequest request = UpdateUserRequest.builder()
                 .userId(userId)
@@ -136,7 +136,7 @@ class UserServiceTest {
     }
 
     @Test
-    void delete_성공() {
+    void 유저_삭제시_repository의_delete를_호출한다() {
         UUID userId = user.getId();
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
@@ -146,7 +146,7 @@ class UserServiceTest {
     }
 
     @Test
-    void delete_사용자_없음_예외() {
+    void 존재하지_않는_유저_삭제시_UserNotFoundException이_발생한다() {
         UUID userId = UUID.randomUUID();
         given(userRepository.findById(userId)).willReturn(Optional.empty());
 
@@ -155,7 +155,7 @@ class UserServiceTest {
     }
 
     @Test
-    void find_성공() {
+    void 유저_단건_조회시_해당_유저_정보가_반환된다() {
         UUID userId = user.getId();
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
         given(userMapper.toDto(user)).willReturn(userDto);
@@ -166,7 +166,7 @@ class UserServiceTest {
     }
 
     @Test
-    void find_사용자_없음_예외() {
+    void 존재하지_않는_유저_조회시_UserNotFoundException이_발생한다() {
         UUID userId = UUID.randomUUID();
         given(userRepository.findById(userId)).willReturn(Optional.empty());
 
@@ -175,7 +175,7 @@ class UserServiceTest {
     }
 
     @Test
-    void findAll_성공() {
+    void 전체_유저_조회시_모든_유저_목록이_반환된다() {
         given(userRepository.findAll()).willReturn(List.of(user));
         given(userMapper.toDto(user)).willReturn(userDto);
 
@@ -186,13 +186,13 @@ class UserServiceTest {
     }
 
     @Test
-    void create_요청_null_예외() {
+    void null_요청으로_유저_생성시_DiscodeitException이_발생한다() {
         assertThatThrownBy(() -> userService.create(null))
                 .isInstanceOf(DiscodeitException.class);
     }
 
     @Test
-    void create_username_빈값_예외() {
+    void 빈_username으로_유저_생성시_DiscodeitException이_발생한다() {
         CreateUserRequest request = CreateUserRequest.builder()
                 .username("")
                 .email("test@example.com")
@@ -204,7 +204,7 @@ class UserServiceTest {
     }
 
     @Test
-    void create_email_빈값_예외() {
+    void 빈_email로_유저_생성시_DiscodeitException이_발생한다() {
         CreateUserRequest request = CreateUserRequest.builder()
                 .username("testuser")
                 .email("")
@@ -216,7 +216,7 @@ class UserServiceTest {
     }
 
     @Test
-    void update_username_중복_예외() {
+    void 이미_존재하는_username으로_유저_수정시_DuplicateUsernameException이_발생한다() {
         UUID userId = user.getId();
         UpdateUserRequest request = UpdateUserRequest.builder()
                 .userId(userId)
@@ -236,7 +236,7 @@ class UserServiceTest {
     }
 
     @Test
-    void update_요청_null_예외() {
+    void null_요청으로_유저_수정시_DiscodeitException이_발생한다() {
         assertThatThrownBy(() -> userService.update(null))
                 .isInstanceOf(DiscodeitException.class);
     }
