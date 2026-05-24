@@ -57,7 +57,7 @@ jobs:
             --task-definition ${{ vars.ECS_TASK_DEFINITION }} \
             --query taskDefinition > task-definition.json
 
-      - name: ECS 태스크 정의에 새 이미지 반영
+      - name: 새 이미지로 태스크 정의 업데이트
         id: render-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -65,10 +65,27 @@ jobs:
           container-name: discodeit
           image: ${{ vars.ECR_REPOSITORY_URI }}:${{ github.sha }}
 
-      - name: ECS 서비스 배포
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service: ${{ vars.ECS_SERVICE }}
-          cluster: ${{ vars.ECS_CLUSTER }}
-          wait-for-service-stability: true
+      - name: 기존 ECS 서비스 중단 (프리티어 리소스 고려)
+        run: |
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --service ${{ vars.ECS_SERVICE }} \
+            --desired-count 0
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --services ${{ vars.ECS_SERVICE }}
+
+      - name: 새 태스크 정의 등록 및 ECS 서비스 업데이트
+        run: |
+          NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://${{ steps.render-task-def.outputs.task-definition }} \
+            --query taskDefinition.taskDefinitionArn \
+            --output text)
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --service ${{ vars.ECS_SERVICE }} \
+            --task-definition $NEW_TASK_DEF_ARN \
+            --desired-count 1
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER }} \
+            --services ${{ vars.ECS_SERVICE }}
